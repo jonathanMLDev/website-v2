@@ -112,3 +112,21 @@ def setup_periodic_tasks(sender, **kwargs):
         crontab(day_of_week="sun", hour=2, minute=0),
         app.signature("asciidoctor_sandbox.tasks.cleanup_old_sandbox_documents"),
     )
+
+    # Sync new mails to vector database. Executes every 30 minutes.
+    sender.add_periodic_task(
+        datetime.timedelta(minutes=30),
+        app.signature("rag_service.tasks.sync_new_mails_to_vector_db"),
+    )
+
+    # Update summary data. Executes daily at 1:00 AM.
+    sender.add_periodic_task(
+        crontab(hour=1, minute=0),
+        app.signature("rag_service.tasks.update_summary_data"),
+    )
+
+    # Upload vector data to S3. Executes daily at 2:00 AM.
+    sender.add_periodic_task(
+        crontab(hour=2, minute=0),
+        app.signature("rag_service.tasks.upload_vector_data_to_s3"),
+    )

@@ -69,6 +69,7 @@ uv
 mistletoe
 python-frontmatter
 beautifulsoup4
+markdown
 
 # used in old mailinglist migrations, squash them and this can probably be removed
 django-mptt==0.14
@@ -81,3 +82,19 @@ ghapi
 requests
 slack_sdk
 chardet
+
+# RAG Service - Vector Database and ML
+chromadb
+langchain
+langchain-chroma
+langchain-community
+langchain-core
+langchain-huggingface
+langchain-text-splitters
+huggingface-hub
+rank_bm25
+scikit-learn
+scipy
+sentence-transformers
+torch
+transformers

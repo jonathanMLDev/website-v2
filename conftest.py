@@ -12,6 +12,7 @@ pytest_plugins = [
     "core.tests.fixtures",
     "libraries.tests.fixtures",
     "news.tests.fixtures",
+    "rag_service.tests.fixtures",
     "users.tests.fixtures",
     "versions.tests.fixtures",
 ]

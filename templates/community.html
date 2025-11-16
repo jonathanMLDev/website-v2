@@ -1,94 +1,263 @@
-{% extends 'base.html' %}
-{% load i18n %}
-{% load static %}
+{% extends 'base.html' %} {% load i18n %} {% load static %} {% block title %} {%
+trans 'Community' %} {% endblock %} {% block content %}
+<div class="py-0 px-0 md:py-6 md:px-3">
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div
+      class="p-6 bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
+      <h5 class="text-2xl leading-tight text-orange">Mailing List / Forum</h5>
+      <p class="py-1 my-2 border-b pb-4 border-gray-700 text-slate dark:text-white">
+        Discover the Boost library community with options tailored to
+        developers, casual users, and enthusiasts.
+      </p>
+      <div class="grid grid-cols-2">
+        <a href="https://lists.boost.org/mailman3/lists/boost.lists.boost.org/"
+          class="px-2 py-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
+          <h6 class="pb-1 text-sm md:text-base">Developers</h6>
+          <i class="fa fa-helmet-safety"></i>
+        </a>
+        <a href="https://lists.boost.org/archives/list/boost@lists.boost.org/latest"
+          class="px-2 py-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
+          <h6 class="pb-1 text-sm md:text-base">Archives</h6>
+          <i class="fa fa-clock"></i>
+        </a>
 
-{% block title %}
-  {% trans 'Community' %}
-{% endblock %}
+        <a href="https://lists.boost.org/mailman3/lists/boost-users.lists.boost.org/"
+          class="order-3 px-2 py-3 text-center rounded-lg cursor-pointer lg:order-2 lg:col-span-1 hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
+          <h6 class="pb-1 text-sm md:text-base">Users</h6>
+          <i class="fa fa-user fa-lg"></i>
+        </a>
 
-{% block content %}
-  <div class="py-0 px-0 md:py-6 md:px-3">
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <div class="p-6 bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
-        <h5 class="text-2xl leading-tight text-orange">Mailing List / Forum</h5>
-        <p class="py-1 my-2 border-b pb-4 border-gray-700 text-slate dark:text-white">Discover the Boost library community with options tailored to developers, casual users, and enthusiasts.</p>
-        <div class="grid grid-cols-2">
-          <a href="https://lists.boost.org/mailman3/lists/boost.lists.boost.org/" class="px-2 py-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
-            <h6 class="pb-1 text-sm md:text-base">Developers</h6>
-            <i class="fa fa-helmet-safety"></i>
-          </a>
-          <a href="https://lists.boost.org/archives/list/boost@lists.boost.org/latest" class="px-2 py-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
-            <h6 class="pb-1 text-sm md:text-base">Archives</h6>
-            <i class="fa fa-clock"></i>
-          </a>
-
-          <a href="https://lists.boost.org/mailman3/lists/boost-users.lists.boost.org/" class="order-3 px-2 py-3 text-center rounded-lg cursor-pointer lg:order-2 lg:col-span-1 hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
-            <h6 class="pb-1 text-sm md:text-base">Users</h6>
-            <i class="fa fa-user fa-lg"></i>
-          </a>
-
-          <a href="https://lists.boost.org/mailman3/lists/boost-announce.lists.boost.org/" class="order-2 px-2 py-3 text-center rounded-lg cursor-pointer lg:order-3 hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
-            <h6 class="pb-1 text-sm md:text-base">Announcements</h6>
-            <i class="fa fa-bullhorn"></i>
-          </a>
-        </div>
-        <div>
-          <p class="text-center mx-auto pt-3">
-            Please, read our <a href="/doc/user-guide/discussion-policy.html" class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange whitespace-nowrap">Discussion Policy</a> before posting.
-          </p>
-        </div>
+        <a href="https://lists.boost.org/mailman3/lists/boost-announce.lists.boost.org/"
+          class="order-2 px-2 py-3 text-center rounded-lg cursor-pointer lg:order-3 hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">
+          <h6 class="pb-1 text-sm md:text-base">Announcements</h6>
+          <i class="fa fa-bullhorn"></i>
+        </a>
       </div>
-
-      <div class="p-6 bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
-        <h5 class="text-2xl leading-tight text-orange">The Official C++ Language Slack Workspace</h5>
-
-        <p class="py-1 my-2 border-b pb-4 border-gray-700">A vibrant hub for real-time discussions with Boost authors, maintainers, and contributors. Dive into one of the largest searchable databases for Boost/C++ insights and history. Join now.</p>
-
-        <div class="flex flex-col">
-          <a href="https://cppalliance.org/slack/" class="flex p-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Join Cpplang Slack</a>
-          <a href="https://cpplang.slack.com/" class="flex p-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Visit the Workspace</a>
-        </div>
-      </div>
-
-      {% comment %}
-      <div class="p-6 text-white bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
-        <h5 class="text-2xl font-bold leading-tight text-orange">Users</h5>
-        <p class="py-1 my-2 border-b border-gray-700">See everyone involved with Boost.</p>
-        <ul class="flex flex-wrap mt-2 pt-2 space-y-2">
-          <li class="w-1/2 text-center">
-            <a href="https://www.boost.org/users/people.html" class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Authors</a>
-          </li>
-          <li class="w-1/2 text-center">
-            <a href="https://www.boost.org/community/moderators.html" class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Moderators</a>
-          </li>
-          {# <li class="w-1/2 text-center"><a href="https://sites.google.com/a/boost.org/steering/" class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Boost Foundation</a></li> #}
-          <li class="w-1/2 text-center">
-            <a href="https://www.boost.org/users/memoriam/beman_dawes.html" class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">In Memoriam: Beman Dawes</a>
-          </li>
-        </ul>
-      </div>
-      {% endcomment %}
-
-      <div class="p-6 text-white bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
-        <h5 class="text-2xl leading-tight text-orange">ISO C++</h5>
-        <p class="py-1 my-2 border-b pb-4 border-gray-700 text-slate dark:text-white">News, Status & Discussion about Standard C++</p>
-        <p class="pt-3 text-slate dark:text-white">
-          <a href="https://isocpp.org/" class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange whitespace-nowrap">The Standard C++ Foundation</a> is a Washington 501(c)(6) not-for-profit organization supporting the C++ community and promotes the use of modern Standard C++.
+      <div>
+        <p class="text-center mx-auto pt-3">
+          Please, read our
+          <a href="/doc/user-guide/discussion-policy.html"
+            class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange whitespace-nowrap">Discussion
+            Policy</a>
+          before posting.
         </p>
       </div>
+    </div>
 
-      <div class="p-6 text-white bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
-        <h5 class="text-2xl leading-tight text-orange">Across the Web</h5>
-        <p class="py-1 my-2 border-b pb-4 border-gray-700 text-slate dark:text-white">Follow us, like, and share our announcements.</p>
-        <div class="grid grid-cols-2 md:grid-cols-3 justify-items-center w-fit mx-auto">
-          <a href="https://github.com/boostorg" target="_blank" title="GitHub" class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span class="text-xs">On GitHub</span> <br /><i class="fa-brands fa-github fa-3x"></i></a>
-          <a href="https://x.com/boost_libraries" target="_blank" title="X (Twitter)" class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span class="text-xs">On X (Twitter)</span> <br /><i class="fa-brands fa-x-twitter fa-3x"></i></a>
-          <a href="https://bsky.app/profile/boost.org" target="_blank" title="Bluesky" class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span class="text-xs">On Bluesky</span> <br /><i class="fa-brands fa-bluesky fa-3x"></i></a>
-          <a href="https://mastodon.social/@boostlibs" target="_blank" title="Mastodon" class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span class="text-xs">On Mastodon</span> <br /><i class="fa-brands fa-mastodon fa-3x"></i></a>
-          <a href="https://www.reddit.com/user/boostlibs/" target="_blank" title="Reddit" class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span class="text-xs">On Reddit</span> <br /><i class="fa-brands fa-reddit fa-3x"></i></a>
-          <a href="https://www.linkedin.com/company/boostlibs/" target="_blank" title="Reddit" class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span class="text-xs">On LinkedIn</span> <br /><i class="fa-brands fa-linkedin fa-3x"></i></a>
-        </div>
+    <div
+      class="p-6 bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
+      <h5 class="text-2xl leading-tight text-orange">
+        The Official C++ Language Slack Workspace
+      </h5>
+
+      <p class="py-1 my-2 border-b pb-4 border-gray-700">
+        A vibrant hub for real-time discussions with Boost authors, maintainers,
+        and contributors. Dive into one of the largest searchable databases for
+        Boost/C++ insights and history. Join now.
+      </p>
+
+      <div class="flex flex-col">
+        <a href="https://cppalliance.org/slack/"
+          class="flex p-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Join
+          Cpplang Slack</a>
+        <a href="https://cpplang.slack.com/"
+          class="flex p-3 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Visit
+          the Workspace</a>
+      </div>
+    </div>
+
+    {% comment %}
+    <div
+      class="p-6 text-white bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
+      <h5 class="text-2xl font-bold leading-tight text-orange">Users</h5>
+      <p class="py-1 my-2 border-b border-gray-700">
+        See everyone involved with Boost.
+      </p>
+      <ul class="flex flex-wrap mt-2 pt-2 space-y-2">
+        <li class="w-1/2 text-center">
+          <a href="https://www.boost.org/users/people.html"
+            class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Authors</a>
+        </li>
+        <li class="w-1/2 text-center">
+          <a href="https://www.boost.org/community/moderators.html"
+            class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Moderators</a>
+        </li>
+        {#
+        <li class="w-1/2 text-center">
+          <a href="https://sites.google.com/a/boost.org/steering/"
+            class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">Boost Foundation</a>
+        </li>
+        #}
+        <li class="w-1/2 text-center">
+          <a href="https://www.boost.org/users/memoriam/beman_dawes.html"
+            class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange">In Memoriam: Beman Dawes</a>
+        </li>
+      </ul>
+    </div>
+    {% endcomment %}
+
+    <div
+      class="p-6 text-white bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
+      <h5 class="text-2xl leading-tight text-orange">ISO C++</h5>
+      <p class="py-1 my-2 border-b pb-4 border-gray-700 text-slate dark:text-white">
+        News, Status & Discussion about Standard C++
+      </p>
+      <p class="pt-3 text-slate dark:text-white">
+        <a href="https://isocpp.org/"
+          class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange whitespace-nowrap">The Standard
+          C++ Foundation</a>
+        is a Washington 501(c)(6) not-for-profit organization supporting the C++
+        community and promotes the use of modern Standard C++.
+      </p>
+    </div>
+
+    <div
+      class="p-6 text-white bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
+      <h5 class="text-2xl leading-tight text-orange">Across the Web</h5>
+      <p class="py-1 my-2 border-b pb-4 border-gray-700 text-slate dark:text-white">
+        Follow us, like, and share our announcements.
+      </p>
+      <div class="grid grid-cols-2 md:grid-cols-3 justify-items-center w-fit mx-auto">
+        <a href="https://github.com/boostorg" target="_blank" title="GitHub"
+          class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span
+            class="text-xs">On GitHub</span> <br /><i class="fa-brands fa-github fa-3x"></i></a>
+        <a href="https://x.com/boost_libraries" target="_blank" title="X (Twitter)"
+          class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span
+            class="text-xs">On X (Twitter)</span> <br /><i class="fa-brands fa-x-twitter fa-3x"></i></a>
+        <a href="https://bsky.app/profile/boost.org" target="_blank" title="Bluesky"
+          class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span
+            class="text-xs">On Bluesky</span> <br /><i class="fa-brands fa-bluesky fa-3x"></i></a>
+        <a href="https://mastodon.social/@boostlibs" target="_blank" title="Mastodon"
+          class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span
+            class="text-xs">On Mastodon</span> <br /><i class="fa-brands fa-mastodon fa-3x"></i></a>
+        <a href="https://www.reddit.com/user/boostlibs/" target="_blank" title="Reddit"
+          class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span
+            class="text-xs">On Reddit</span> <br /><i class="fa-brands fa-reddit fa-3x"></i></a>
+        <a href="https://www.linkedin.com/company/boostlibs/" target="_blank" title="Reddit"
+          class="block p-3 w-28 text-center rounded-lg cursor-pointer hover:bg-gray-100 group dark:hover:bg-slate text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange"><span
+            class="text-xs">On LinkedIn</span> <br /><i class="fa-brands fa-linkedin fa-3x"></i></a>
       </div>
     </div>
   </div>
+  {% if community_summary %}
+  <div
+    class="mt-6 p-6 bg-white md:rounded-lg md:shadow-lg dark:text-white text-slate dark:bg-charcoal dark:bg-neutral-700">
+    <h5 class="text-2xl leading-tight text-orange">
+      Recent Community Summary
+    </h5>
+    <p class="py-1 my-2 border-b pb-4 border-gray-700 text-slate dark:text-white text-sm">
+      {% if overall_stats.date_range.start and overall_stats.date_range.end %}
+      {{ overall_stats.date_range.start|date:"M j" }} - {{ overall_stats.date_range.end|date:"M j, Y" }}
+      {% endif %}
+      {% if overall_stats.topics_count %}
+      • {{ overall_stats.topics_count }} topic{{ overall_stats.topics_count|pluralize }}
+      {% endif %}
+      {% if overall_stats.recent_emails %}
+      • {{ overall_stats.recent_emails }} recent email{{ overall_stats.recent_emails|pluralize }}
+      {% endif %}
+    </p>
+    {% if summary_by_topic %}
+    <div class="space-y-4">
+      {% for topic in summary_by_topic %} {% if topic.subject %}
+      <div class="border border-gray-300 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow">
+        <h6 class="text-lg font-semibold text-orange mb-3">
+          {{ topic.subject }}
+        </h6>
+
+        {% if topic.assertions %}
+        <details class="mb-3">
+          <summary
+            class="text-sm font-semibold text-slate dark:text-white/90 cursor-pointer hover:text-orange dark:hover:text-orange select-none">
+            Key Points ({{ topic.assertions_count }})<span
+              class="text-xs font-normal text-gray-500 dark:text-gray-400"></span>
+          </summary>
+          <ul class="list-disc list-inside space-y-2 ml-2 mt-2">
+            {% for assertion in topic.assertions %}
+            <li class="text-sm text-slate dark:text-white/80">
+              {{ assertion.content }}
+              {% if assertion.reference_url %}
+              <span class="ml-1">
+                {% if assertion.reference_urls_with_numbers %}
+                {% for ref in assertion.reference_urls_with_numbers %}
+                <a href="{{ ref.url }}" target="_blank" rel="noopener noreferrer"
+                  class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange text-xs ml-1">
+                  [{{ ref.number }}]
+                </a>
+                {% endfor %}
+                {% else %}
+                {% for url in assertion.reference_url %}
+                <a href="{{ url }}" target="_blank" rel="noopener noreferrer"
+                  class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange text-xs ml-1">
+                  [{{ forloop.counter }}]
+                </a>
+                {% endfor %}
+                {% endif %}
+              </span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+
+        {% if topic.chronological_summary %}
+        <details>
+          <summary
+            class="text-sm font-semibold text-slate dark:text-white/90 cursor-pointer hover:text-orange dark:hover:text-orange select-none">
+            Timeline ({{ topic.chronological_summary_count }} entries)<span
+              class="text-xs font-normal text-gray-500 dark:text-gray-400"></span>
+          </summary>
+          <div class="space-y-3 mt-2">
+            {% for entry in topic.chronological_summary %}
+            <div class="text-sm text-slate dark:text-white/80 pl-2 border-l-2 border-orange/30">
+              <span class="font-semibold text-orange">{{ entry.Date }}:</span>
+              <span class="ml-1">{{ entry.summary }}</span>
+              {% if entry.reference_url %}
+              <span class="ml-1">
+                {% if entry.reference_urls_with_numbers %}
+                {% for ref in entry.reference_urls_with_numbers %}
+                <a href="{{ ref.url }}" target="_blank" rel="noopener noreferrer"
+                  class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange text-xs ml-1">
+                  [{{ ref.number }}]
+                </a>
+                {% endfor %}
+                {% else %}
+                {% for url in entry.reference_url %}
+                <a href="{{ url }}" target="_blank" rel="noopener noreferrer"
+                  class="text-sky-600 dark:text-sky-300 hover:text-orange dark:hover:text-orange text-xs ml-1">
+                  [{{ forloop.counter }}]
+                </a>
+                {% endfor %}
+                {% endif %}
+              </span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </details>
+        {% else %}
+        <p class="text-sm text-slate dark:text-white/60 italic">
+          Summary will be available soon.
+        </p>
+        {% endif %}
+      </div>
+      {% elif topic %}
+      <div class="border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+        <h6 class="text-lg font-semibold text-orange mb-2">{{ topic }}</h6>
+      </div>
+      {% endif %} {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-slate dark:text-white/60 italic">
+      No topics identified for this period.
+    </p>
+    {% endif %}
+    <p class="mt-4 text-xs text-slate dark:text-white/60 italic">
+      This summary is AI-generated from recent mailing list discussions.
+      Please verify accuracy.
+    </p>
+  </div>
+  {% endif %}
+
+</div>
 {% endblock %}
