@@ -2,20 +2,23 @@
 Documentation preprocessing pipeline for LangChain RAG
 """
 
+import hashlib
+import re
 from pathlib import Path
 from typing import List, Optional
+
+import structlog
+from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from tqdm import tqdm
+
 try:
     import markdown
     MARKDOWN_AVAILABLE = True
 except ImportError:
     MARKDOWN_AVAILABLE = False
     markdown = None
-from bs4 import BeautifulSoup
-import re
-from tqdm import tqdm
-import hashlib
 
 
 class DocuPreprocessor:
@@ -45,7 +48,9 @@ class DocuPreprocessor:
         """Process Boost documentation files"""
         documents = []
 
-        for file_path in tqdm(docs_path.rglob("*"), desc="Processing documentation"):
+        for file_path in tqdm(
+            docs_path.rglob("*"), desc="Processing documentation"
+        ):
             if file_path.is_file() and file_path.suffix in [".txt", ".md", ".html"]:
                 try:
                     content = self._read_file(file_path)
@@ -54,17 +59,18 @@ class DocuPreprocessor:
                         if "Source URL:" in first_line:
                             url = first_line.split("Source URL:")[1].strip()
                             source = "Boost Documentation"
+                            content = content.replace(first_line, "")
                         else:
                             url = str(file_path.relative_to(docs_path))
                             source = "github.com/boostorg"
                         doc_id = hashlib.md5(url.encode()).hexdigest()
                         doc = Document(
-                            page_content=content.replace(first_line, ""),
+                            page_content=content,
                             id=doc_id,
                             metadata={
                                 "source": source,
                                 "type": "documentation",
-                                "library": self._extract_library_name(file_path),
+                                "library": self._extract_library_name_from_path(file_path),
                                 "file_type": file_path.suffix,
                                 "url": url,
                                 "version": "1.89.0"
@@ -108,7 +114,7 @@ class DocuPreprocessor:
             print(f"Error reading file {file_path}: {e}")
             return None
 
-    def _extract_library_name(self, file_path: Path) -> str:
+    def _extract_library_name_from_path(self, file_path: Path) -> str:
         """Extract Boost library name from file path"""
         parts = file_path.parts
         for i, part in enumerate(parts):
@@ -120,7 +126,9 @@ class DocuPreprocessor:
         """Split documents into chunks"""
         chunked_documents = []
         for doc in documents:
-            doc.id = doc.id if doc.id else hashlib.md5(doc.metadata.get("url", "").encode()).hexdigest()
+            if not doc.id:
+                url = doc.metadata.get("url", "")
+                doc.id = hashlib.md5(url.encode()).hexdigest()
             chunks = self.text_splitter.split_documents([doc])
             for i, chunk in enumerate(chunks):
                 if len(chunk.page_content) < 50:

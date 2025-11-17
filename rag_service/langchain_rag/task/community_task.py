@@ -85,8 +85,6 @@ class WeeklyCommunitySummaryGenerator:
         if not recent_emails:
             self.logger.warning(
                 "No recent emails found for summary generation")
-        else:
-            self.logger.info(f"Retrieved {len(recent_emails)} recent emails")
         return recent_emails
 
     def _extract_topics(self, recent_emails: Any) -> List[Any]:
@@ -138,7 +136,13 @@ class WeeklyCommunitySummaryGenerator:
         if isinstance(topic, dict):
             topic['chronological_summary'] = topic_summary
 
-    def _build_result(self, topics: List[Any], recent_emails: Any, date_start: datetime, date_end: datetime) -> Dict[str, Any]:
+    def _build_result(
+        self,
+        topics: List[Any],
+        recent_emails: Any,
+        date_start: datetime,
+        date_end: datetime
+    ) -> Dict[str, Any]:
         """Build the final result dictionary."""
         email_count = len(recent_emails.get(
             'documents', recent_emails.get('ids', [])))
@@ -148,8 +152,16 @@ class WeeklyCommunitySummaryGenerator:
                 "topics_count": len(topics),
                 "recent_emails": email_count,
                 "date_range": {
-                    "start": date_start.isoformat() if isinstance(date_start, datetime) else str(date_start),
-                    "end": date_end.isoformat() if isinstance(date_end, datetime) else str(date_end),
+                    "start": (
+                        date_start.isoformat()
+                        if isinstance(date_start, datetime)
+                        else str(date_start)
+                    ),
+                    "end": (
+                        date_end.isoformat()
+                        if isinstance(date_end, datetime)
+                        else str(date_end)
+                    ),
                 },
             },
             "ai_generated": True,

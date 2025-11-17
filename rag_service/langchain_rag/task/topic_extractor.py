@@ -4,15 +4,15 @@ Topic Extraction Module
 Extracts main topics from recent discussions using LLM agents.
 """
 
-from typing import List
-import structlog
+from typing import Any, Dict, List
 
-logger = structlog.get_logger(__name__)
-from typing import Dict, Any
 import numpy as np
+import structlog
+from langchain_core.documents import Document
 
 from ..llm import LLMHelper
-from langchain_core.documents import Document
+
+logger = structlog.get_logger(__name__)
 
 try:
     from sklearn.cluster import KMeans
@@ -105,7 +105,7 @@ class TopicExtractor:
         Returns:
             List of clusters
         """
-        unique_thread_ids, counts = np.unique(thread_ids, return_counts=True)
+        unique_thread_ids = np.unique(thread_ids)
         cluster_result_info = []
         for i, unique_thread_id in enumerate(unique_thread_ids):
             member_list = [i for i, thread_id in enumerate(thread_ids) if thread_id == unique_thread_id]
@@ -187,9 +187,11 @@ class TopicExtractor:
         # Get cluster sizes and sort by size (descending)
         unique_labels, counts = np.unique(cluster_labels, return_counts=True)
         cluster_sizes = dict(zip(unique_labels, counts))
-        sorted_cluster_info = sorted(cluster_sizes.items(), key=lambda x: x[1], reverse=True)[:n_clusters]
+        sorted_cluster_info = sorted(
+            cluster_sizes.items(), key=lambda x: x[1], reverse=True
+        )[:n_clusters]
         cluster_result_info = []
-        for cluster_id, cluster_size in sorted_cluster_info:
+        for cluster_id, _ in sorted_cluster_info:
             indics_of_cluster = [i for i, cluster_label in enumerate(cluster_labels) if cluster_label == cluster_id]
             if len(indics_of_cluster) < 2:
                 continue
@@ -207,7 +209,6 @@ class TopicExtractor:
         Returns:
             Topic summary string
         """
-        n_topics = len(sorted_clusters)
         if not self.llm_helper:
             # Fallback: use first document's subject
             return "Unknown"

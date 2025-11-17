@@ -137,7 +137,9 @@ class CommunitySummaryView(TemplateView):
 
             # Normalize key from "reference url" to "reference_url"
             if "reference url" in normalized_assertion:
-                normalized_assertion["reference_url"] = normalized_assertion.pop("reference url")
+                normalized_assertion["reference_url"] = (
+                    normalized_assertion.pop("reference url")
+                )
 
             # Add reference numbers paired with URLs
             if "reference_url" in normalized_assertion:
@@ -155,9 +157,12 @@ class CommunitySummaryView(TemplateView):
 
         return normalized_assertions, len(normalized_assertions)
 
-    def _normalize_chronological_summary(self, chronological_list, url_to_number):
+    def _normalize_chronological_summary(
+        self, chronological_list, url_to_number
+    ):
         """
-        Normalize chronological summary entries by converting reference URLs and adding reference numbers.
+        Normalize chronological summary entries by converting reference URLs
+        and adding reference numbers.
 
         Args:
             chronological_list: List of chronological entry dictionaries
