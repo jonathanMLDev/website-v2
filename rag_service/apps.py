@@ -13,4 +13,3 @@ class RagServiceConfig(AppConfig):
         # Import signals if needed
         # import rag_service.signals  # noqa
         pass
-

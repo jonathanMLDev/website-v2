@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 from typing import List, Optional
 
-import structlog
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -15,6 +14,7 @@ from tqdm import tqdm
 
 try:
     import markdown
+
     MARKDOWN_AVAILABLE = True
 except ImportError:
     MARKDOWN_AVAILABLE = False
@@ -25,10 +25,7 @@ class DocuPreprocessor:
     """Process Boost library documentation for RAG"""
 
     def __init__(
-        self,
-        doc_data_dir: str = "",
-        chunk_size: int = 512,
-        chunk_overlap: int = 50
+        self, doc_data_dir: str = "", chunk_size: int = 512, chunk_overlap: int = 50
     ):
         self.doc_data_dir = Path(doc_data_dir)
         self.chunk_size = chunk_size
@@ -48,9 +45,7 @@ class DocuPreprocessor:
         """Process Boost documentation files"""
         documents = []
 
-        for file_path in tqdm(
-            docs_path.rglob("*"), desc="Processing documentation"
-        ):
+        for file_path in tqdm(docs_path.rglob("*"), desc="Processing documentation"):
             if file_path.is_file() and file_path.suffix in [".txt", ".md", ".html"]:
                 try:
                     content = self._read_file(file_path)
@@ -70,10 +65,12 @@ class DocuPreprocessor:
                             metadata={
                                 "source": source,
                                 "type": "documentation",
-                                "library": self._extract_library_name_from_path(file_path),
+                                "library": self._extract_library_name_from_path(
+                                    file_path
+                                ),
                                 "file_type": file_path.suffix,
                                 "url": url,
-                                "version": "1.89.0"
+                                "version": "1.89.0",
                             },
                         )
                         documents.append(doc)
@@ -101,9 +98,9 @@ class DocuPreprocessor:
                 else:
                     # Fallback: just use the markdown text as-is
                     # Remove markdown syntax roughly
-                    content = re.sub(r'#{1,6}\s+', '', content)  # Remove headers
-                    content = re.sub(r'\*\*(.+?)\*\*', r'\1', content)  # Remove bold
-                    content = re.sub(r'\*(.+?)\*', r'\1', content)  # Remove italic
+                    content = re.sub(r"#{1,6}\s+", "", content)  # Remove headers
+                    content = re.sub(r"\*\*(.+?)\*\*", r"\1", content)  # Remove bold
+                    content = re.sub(r"\*(.+?)\*", r"\1", content)  # Remove italic
 
             # Clean up whitespace
             # content = re.sub(r"\s+", " ", content).strip()
@@ -137,4 +134,3 @@ class DocuPreprocessor:
                 chunked_documents.append(chunk)
 
         return chunked_documents
-

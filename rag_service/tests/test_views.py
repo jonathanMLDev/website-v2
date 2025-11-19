@@ -7,8 +7,6 @@ from model_bakery import baker
 
 from datetime import datetime, timedelta
 
-from rag_service.models import CommunitySummary
-
 
 @pytest.mark.django_db
 def test_community_summary_view_with_summary(tp, community_summary):
@@ -47,7 +45,9 @@ def test_community_summary_view_no_summary(tp):
 
 
 @pytest.mark.django_db
-def test_community_summary_view_excludes_needs_review(tp, community_summary_needs_review):
+def test_community_summary_view_excludes_needs_review(
+    tp, community_summary_needs_review
+):
     """Test that CommunitySummaryView excludes summaries that need review."""
     response = tp.assertGoodView("community")
 
@@ -63,7 +63,7 @@ def test_community_summary_view_uses_latest_reviewed(tp):
     start_date = end_date - timedelta(days=7)
 
     # Create older reviewed summary
-    older_summary = baker.make(
+    _older_summary = baker.make(
         "rag_service.CommunitySummary",
         start_date=start_date - timedelta(days=7),
         end_date=end_date - timedelta(days=7),
@@ -120,4 +120,3 @@ def test_community_summary_view_date_parsing(tp):
     # Dates should be parsed to datetime objects
     assert isinstance(date_range["start"], datetime)
     assert isinstance(date_range["end"], datetime)
-

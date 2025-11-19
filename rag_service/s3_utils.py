@@ -53,8 +53,8 @@ class RAGS3Manager:
 
         self.bucket_name = bucket_name or os.getenv("RAG_S3_BUCKET_NAME")
         self.aws_access_key_id = aws_access_key_id or os.getenv("AWS_ACCESS_KEY_ID")
-        self.aws_secret_access_key = (
-            aws_secret_access_key or os.getenv("AWS_SECRET_ACCESS_KEY")
+        self.aws_secret_access_key = aws_secret_access_key or os.getenv(
+            "AWS_SECRET_ACCESS_KEY"
         )
         self.endpoint_url = endpoint_url or os.getenv("AWS_S3_ENDPOINT_URL")
         self.region_name = region_name or os.getenv("AWS_S3_REGION_NAME", "us-east-1")
@@ -219,9 +219,7 @@ class RAGS3Manager:
             self.s3_client.download_file(self.bucket_name, s3_key, tmp_path)
 
             file_size = os.path.getsize(tmp_path)
-            self.logger.info(
-                "Downloaded from S3", size_mb=file_size / (1024 * 1024)
-            )
+            self.logger.info("Downloaded from S3", size_mb=file_size / (1024 * 1024))
 
             # Extract archive
             self.logger.info("Extracting archive", path=extract_path)
@@ -280,9 +278,7 @@ class RAGS3Manager:
             self.logger.exception("Error listing S3 objects", error=str(e))
             return None
 
-    def list_backups(
-        self, prefix: str = "rag/vector_data", limit: int = 10
-    ) -> list:
+    def list_backups(self, prefix: str = "rag/vector_data", limit: int = 10) -> list:
         """
         List available backups in S3.
 

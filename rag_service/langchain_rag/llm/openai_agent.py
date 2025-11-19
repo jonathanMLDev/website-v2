@@ -20,12 +20,7 @@ from .base_agent import BaseAgent
 class OpenAIAgent(BaseAgent):
     """OpenAI-based LLM agent"""
 
-    def __init__(
-        self,
-        config: Any,
-        api_key: str = None,
-        host_url: str = None
-    ):
+    def __init__(self, config: Any, api_key: str = None, host_url: str = None):
         """
         Initialize OpenAI agent
 
@@ -37,7 +32,9 @@ class OpenAIAgent(BaseAgent):
         super().__init__()
 
         if not OPENAI_AVAILABLE:
-            raise ImportError("OpenAI package not installed. Install with: pip install openai")
+            raise ImportError(
+                "OpenAI package not installed. Install with: pip install openai"
+            )
 
         import os
 
@@ -45,19 +42,19 @@ class OpenAIAgent(BaseAgent):
             raise ValueError("config is required")
 
         # Get model from config
-        if hasattr(config, 'openai_model'):
+        if hasattr(config, "openai_model"):
             model = config.openai_model
         else:
             model = "gpt-3.5-turbo"  # Default fallback
 
         # Get temperature from config
-        if hasattr(config, 'llm_temperature'):
+        if hasattr(config, "llm_temperature"):
             temperature = config.llm_temperature
         else:
             temperature = 0.3  # Default fallback
 
         # Get max_tokens from config
-        if hasattr(config, 'llm_max_tokens'):
+        if hasattr(config, "llm_max_tokens"):
             max_tokens = config.llm_max_tokens
         else:
             max_tokens = 500  # Default fallback
@@ -69,16 +66,15 @@ class OpenAIAgent(BaseAgent):
         api_key = api_key or os.getenv("OPENAI_API_KEY")
         host_url = host_url or os.getenv("OPENAI_HOST_URL")
         if not api_key:
-            raise ValueError("OpenAI API key required. Set OPENAI_API_KEY environment variable.")
+            raise ValueError(
+                "OpenAI API key required. Set OPENAI_API_KEY environment variable."
+            )
 
         self.client_sync = OpenAI(api_key=api_key, base_url=host_url)
         self.logger.info(f"OpenAI agent initialized with model: {model}")
 
     def run_llm(
-        self,
-        prompt: str,
-        system_prompt: str,
-        max_tokens: int = 500  # noqa: ARG002
+        self, prompt: str, system_prompt: str, max_tokens: int = 500  # noqa: ARG002
     ) -> Dict[str, Any]:
         """
         Run LLM with given prompt and system prompt
@@ -95,18 +91,12 @@ class OpenAIAgent(BaseAgent):
             response = self.client_sync.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=self.temperature,
                 # max_tokens=max_tokens,  # Not used - model determines response length
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
             )
 
             result_text = response.choices[0].message.content.strip()
@@ -115,13 +105,15 @@ class OpenAIAgent(BaseAgent):
                 return {}
 
             try:
-                start_index = result_text.find('{')
-                end_index = result_text.rfind('}') + 1
+                start_index = result_text.find("{")
+                end_index = result_text.rfind("}") + 1
                 json_text = result_text[start_index:end_index]
                 result = json.loads(json_text)
                 return result
             except json.JSONDecodeError as e:
-                self.logger.error(f"Failed to parse JSON response: {e}. Response text: {result_text}")
+                self.logger.error(
+                    f"Failed to parse JSON response: {e}. Response text: {result_text}"
+                )
                 return {}
         except Exception as e:
             self.logger.error(f"Error in run_llm: {e}")

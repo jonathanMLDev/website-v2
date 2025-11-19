@@ -6,8 +6,8 @@ import os
 import time
 from typing import Any, Dict, List, Tuple
 
-import structlog
 from langchain_core.documents import Document
+import structlog
 from tqdm import tqdm
 
 from config.rag_config import LangChainConfig
@@ -30,6 +30,15 @@ class LangChainRAGPipeline:
     """High-performance RAG pipeline using LangChain with hybrid retrieval"""
 
     def __init__(self, config: LangChainConfig = None, **kwargs):
+        """
+        Initialize the pipeline with configuration and supporting components.
+
+        Args:
+            config: Optional LangChainConfig instance. When omitted a new
+                instance is created from ``kwargs`` or DEFAULT_CONFIG.
+            **kwargs: Keyword arguments forwarded to LangChainConfig when
+                ``config`` is not supplied.
+        """
         # Use provided config or create from kwargs
         if config is None:
             config = LangChainConfig(**kwargs)
@@ -38,12 +47,8 @@ class LangChainRAGPipeline:
         self.logger = logger.bind(component="LangChainRAGPipeline")
 
         # Validate configuration
-        try:
-            self.config.validate()
-            self.logger.info("Configuration validated successfully")
-        except Exception as e:
-            self.logger.exception("Configuration validation failed: %s", e)
-            raise
+        self.config.validate()
+        self.logger.info("Configuration validated successfully")
 
         # Initialize caching and telemetry
         self.llm_helper = None
@@ -70,56 +75,46 @@ class LangChainRAGPipeline:
             self.logger.info("Performance telemetry initialized")
 
         # Initialize components
-        try:
-            self._setup_data_processor()
-            self._setup_retriever()
-            self.logger.info("LangChain RAG pipeline initialized successfully")
-        except Exception as e:
-            self.logger.exception("Failed to initialize LangChain RAG pipeline: %s", e)
-            raise
+        self._setup_data_processor()
+        self._setup_retriever()
+        self.logger.info("LangChain RAG pipeline initialized successfully")
 
     def _setup_data_processor(self):
-        """Setup data processor"""
-        try:
-            self.data_processor = BoostDataProcessor(config=self.config)
-            self.logger.info("Data processor initialized")
-        except Exception as e:
-            self.logger.exception("Failed to initialize data processor: %s", e)
-            raise
+        """Instantiate the data processor used to load and chunk documents."""
+        self.data_processor = BoostDataProcessor(config=self.config)
+        self.logger.info("Data processor initialized")
 
     def _setup_retriever(self):
-        """Setup multiple base retrievers and multi-base retriever"""
-        try:
-            os.environ["CHROMA_DISABLE_PERSISTENCE_CACHE"] = "1"
+        """
+        Configure base retrievers and wrap them with cache/telemetry layers.
 
-            # Create base retrievers
-            base_retrievers = self._create_base_retrievers()
+        The resulting retriever hierarchy is stored on the instance for later
+        queries.
+        """
+        os.environ["CHROMA_DISABLE_PERSISTENCE_CACHE"] = "1"
 
-            # Create and wrap multi-base retriever
-            retriever = self._create_wrapped_retriever(base_retrievers)
+        # Create base retrievers
+        base_retrievers = self._create_base_retrievers()
 
-            self.hybrid_retriever = retriever
-            self.multi_base_retriever = MultiBaseRetriever(
-                base_retrievers=base_retrievers
-            )
-            self.base_retrievers = base_retrievers
-        except Exception as e:
-            self.logger.exception("Failed to setup retrievers: %s", e)
-            raise
+        # Create and wrap multi-base retriever
+        retriever = self._create_wrapped_retriever(base_retrievers)
+
+        self.hybrid_retriever = retriever
+        self.multi_base_retriever = MultiBaseRetriever(base_retrievers=base_retrievers)
+        self.base_retrievers = base_retrievers
 
         # Load or reindex for each base retriever
         self._load_or_reindex_retrievers()
 
     def _create_base_retrievers(self) -> Dict[str, LangChainHybridRetriever]:
-        """Create base retrievers for each configured type"""
+        """Create base retrievers for each configured document type."""
         base_retrievers = {}
         retriever_types = self.config.base_retriever_types
         self.logger.info(f"Creating base retrievers for types: {retriever_types}")
 
         for retriever_type in self.config.base_retriever_types:
             chroma_persist_dir = os.path.join(
-                self.config.chroma_persist_dir,
-                retriever_type
+                self.config.chroma_persist_dir, retriever_type
             )
 
             base_retriever = LangChainHybridRetriever(
@@ -135,7 +130,16 @@ class LangChainRAGPipeline:
     def _create_wrapped_retriever(
         self, base_retrievers: Dict[str, LangChainHybridRetriever]
     ):
-        """Create multi-base retriever and wrap with instrumentation and caching"""
+        """
+        Build the MultiBaseRetriever and augment it with telemetry and cache.
+
+        Args:
+            base_retrievers: Mapping of retriever key to instantiated retriever.
+
+        Returns:
+            A retriever instance that first records telemetry metrics and then
+            leverages query caching (if enabled).
+        """
         retriever = MultiBaseRetriever(base_retrievers=base_retrievers)
 
         if self.config.enable_telemetry and self.telemetry:
@@ -153,14 +157,16 @@ class LangChainRAGPipeline:
         return retriever
 
     def _load_or_reindex_retrievers(self):
-        """Load or reindex each base retriever"""
+        """Ensure every base retriever has an up-to-date index on disk."""
         for retriever_type, base_retriever in self.base_retrievers.items():
             try:
                 if self._try_load_retriever_index(retriever_type, base_retriever):
                     continue
 
                 self._reindex_retriever(retriever_type, base_retriever)
-            except Exception as e:
+            except (
+                Exception
+            ) as e:  # pragma: no cover - keep pipeline usable if one retriever fails
                 self.logger.exception(
                     f"Failed to load/reindex {retriever_type} retriever: %s", e
                 )
@@ -169,17 +175,28 @@ class LangChainRAGPipeline:
     def _try_load_retriever_index(
         self, retriever_type: str, base_retriever: LangChainHybridRetriever
     ) -> bool:
-        """Try to load existing retriever index, return True if successful"""
+        """
+        Try to load an existing retriever index.
+
+        Returns:
+            True when the persisted index has been loaded, False otherwise.
+        """
         if self.config.force_reindex:
             return False
 
         try:
             status = base_retriever.load_index()
             if all(status.values()):
-                self.logger.info(f"{retriever_type} retriever index loaded successfully")
+                self.logger.info(
+                    f"{retriever_type} retriever index loaded successfully"
+                )
                 return True
-        except Exception as e:
-            self.logger.exception(f"Failed to load {retriever_type} retriever index: {e}")
+        except (
+            Exception
+        ) as e:  # pragma: no cover - fall back to reindexing when loading fails unexpectedly
+            self.logger.exception(
+                f"Failed to load {retriever_type} retriever index: {e}"
+            )
             self.logger.info(f"Force reindexing {retriever_type}...")
 
         return False
@@ -187,7 +204,7 @@ class LangChainRAGPipeline:
     def _reindex_retriever(
         self, retriever_type: str, base_retriever: LangChainHybridRetriever
     ):
-        """Reindex a retriever with documents"""
+        """Reindex a retriever by loading, chunking, and embedding documents."""
         documents = self._load_documents_for_type(retriever_type)
         if not documents:
             self.logger.warning(f"No documents found for {retriever_type} retriever")
@@ -242,7 +259,7 @@ class LangChainRAGPipeline:
         question: str,
         fetch_k: int = 10,
         filters: Dict[str, Any] = None,
-        str_results: bool = False
+        str_results: bool = False,
     ):
         """Retrieve relevant documents with optional type filtering
 
@@ -265,15 +282,14 @@ class LangChainRAGPipeline:
                 retrieve_list = [doc.page_content for doc in relevant_docs]
             else:
                 retrieve_list = relevant_docs
-        except Exception as e:
+        except (
+            Exception
+        ) as e:  # pragma: no cover - defensive catch keeps retrieval API responsive
             self.logger.exception("Error during query: %s", e)
         return retrieve_list
 
     def query(
-        self,
-        question: str,
-        fetch_k: int = 10,
-        filters: Dict[str, Any] = None
+        self, question: str, fetch_k: int = 10, filters: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Query the RAG pipeline with optional type filtering
 
@@ -287,8 +303,7 @@ class LangChainRAGPipeline:
         """
         start_time = time.time()
         self.logger.info(
-            "Processing query: %s (fetch_k=%d, filters=%s)",
-            question, fetch_k, filters
+            "Processing query: %s (fetch_k=%d, filters=%s)", question, fetch_k, filters
         )
 
         # Start telemetry tracking
@@ -302,11 +317,10 @@ class LangChainRAGPipeline:
 
             retrieve_list = self.retrieve(question, fetch_k, filters)
 
-
             if self.telemetry:
                 self.telemetry.end_stage(
                     "document_retrieval",
-                    {"fetch_k": fetch_k, "results": len(retrieve_list)}
+                    {"fetch_k": fetch_k, "results": len(retrieve_list)},
                 )
 
             if not self.llm_helper:
@@ -331,7 +345,9 @@ class LangChainRAGPipeline:
             )
             return response
 
-        except Exception as e:
+        except (
+            Exception
+        ) as e:  # pragma: no cover - provide friendly error response on unexpected failures
             # End telemetry tracking with failure
             if self.telemetry:
                 self.telemetry.end_query(results_count=0, success=False)
@@ -364,15 +380,14 @@ class LangChainRAGPipeline:
         mail_json["url"] = mail.url
         return mail_json
 
-
     def _normalize_mail_data(self, mail: Any) -> Tuple[Dict[str, Any], str]:
         """Normalize mail data to dictionary format and extract message_id."""
         if isinstance(mail, dict):
             mail_json = mail
-            message_id = mail.get('message_id', 'Unknown')
+            message_id = mail.get("message_id", "Unknown")
         else:
             mail_json = self.convert_mail_to_json(mail)
-            message_id = mail.message_id if hasattr(mail, 'message_id') else 'Unknown'
+            message_id = mail.message_id if hasattr(mail, "message_id") else "Unknown"
         return mail_json, message_id
 
     def _process_new_mail(self, mail_json: Dict[str, Any], mail_retriever: Any) -> bool:
@@ -393,7 +408,7 @@ class LangChainRAGPipeline:
         added_count: int,
         updated_count: int,
         failed_messages: List[str],
-        total_processed: int
+        total_processed: int,
     ) -> Dict[str, Any]:
         """Build result dictionary for mail processing."""
         result = {
@@ -401,7 +416,7 @@ class LangChainRAGPipeline:
             "updated_count": updated_count,
             "failed_count": len(failed_messages),
             "failed_messages": failed_messages,
-            "total_processed": total_processed
+            "total_processed": total_processed,
         }
 
         self.logger.info(
@@ -442,7 +457,7 @@ class LangChainRAGPipeline:
                 mail_json, message_id = self._normalize_mail_data(mail)
 
                 # Check if document already exists
-                if mail_retriever and mail_retriever.document_exists(mail_json['url']):
+                if mail_retriever and mail_retriever.document_exists(mail_json["url"]):
                     self.update_mail_data(mail_json)
                     updated_count += 1
                     continue
@@ -450,7 +465,9 @@ class LangChainRAGPipeline:
                 # Process new mail
                 if self._process_new_mail(mail_json, mail_retriever):
                     added_count += 1
-            except Exception as e:
+            except (
+                Exception
+            ) as e:  # pragma: no cover - continue processing remaining mails
                 self.logger.exception("Error processing mail data: %s", e)
                 if message_id:
                     failed_messages.append(message_id)
@@ -475,10 +492,10 @@ class LangChainRAGPipeline:
         """
         # Get message_id properly based on type
         if isinstance(message, dict):
-            message_id = message.get('message_id', 'Unknown')
+            message_id = message.get("message_id", "Unknown")
             message_dict = message
         else:
-            message_id = getattr(message, 'message_id', 'Unknown')
+            message_id = getattr(message, "message_id", "Unknown")
             message_dict = self.convert_mail_to_json(message)
 
         self.logger.info(f"Updating document {message_id}")
@@ -498,7 +515,9 @@ class LangChainRAGPipeline:
                 )
                 return False
             return True
-        except Exception as e:
+        except (
+            Exception
+        ) as e:  # pragma: no cover - updating one mail must not crash pipeline
             self.logger.exception("Error updating mail data: %s", e)
             return False
 
@@ -527,7 +546,9 @@ class LangChainRAGPipeline:
                 self.logger.info(f"Document {doc_url} does not exist in any retriever")
                 return False
 
-        except Exception as e:
+        except (
+            Exception
+        ) as e:  # pragma: no cover - propagate unexpected deletion failures
             self.logger.exception(f"Error deleting document {doc_url}: %s", e)
             raise
 
@@ -629,6 +650,7 @@ def create_langchain_rag_pipeline(config: LangChainConfig = None, **kwargs):
             config = LangChainConfig(**kwargs)
         else:
             from config.rag_config import DEFAULT_CONFIG
+
             config = DEFAULT_CONFIG
 
     return LangChainRAGPipeline(config=config)

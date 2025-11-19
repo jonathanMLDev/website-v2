@@ -83,14 +83,14 @@ class WeeklyCommunitySummaryGenerator:
             embedding_conclusion=True,
         )
         if not recent_emails:
-            self.logger.warning(
-                "No recent emails found for summary generation")
+            self.logger.warning("No recent emails found for summary generation")
         return recent_emails
 
     def _extract_topics(self, recent_emails: Any) -> List[Any]:
         """Extract main topics from recent discussions."""
         self.logger.info(
-            f"Using topic extraction method: {self.topic_extraction_method}")
+            f"Using topic extraction method: {self.topic_extraction_method}"
+        )
 
         if self.topic_extraction_method == "thread":
             topics = self.topic_extractor.extract_topics_by_thread(
@@ -106,7 +106,8 @@ class WeeklyCommunitySummaryGenerator:
             )
         else:
             raise ValueError(
-                f"Unknown topic extraction method: {self.topic_extraction_method}")
+                f"Unknown topic extraction method: {self.topic_extraction_method}"
+            )
 
         if topics:
             self.logger.info(f"Extracted {len(topics)} topics")
@@ -116,8 +117,7 @@ class WeeklyCommunitySummaryGenerator:
 
     def _process_topic(self, topic: Any, end_date: datetime) -> None:
         """Process a single topic and generate its chronological summary."""
-        topic_str = topic if isinstance(
-            topic, str) else topic.get('subject', '')
+        topic_str = topic if isinstance(topic, str) else topic.get("subject", "")
         self.logger.info(f"Processing topic: {topic_str}")
 
         relevant_emails = self.mail_retriever.retrieve_relevant_emails(
@@ -134,22 +134,20 @@ class WeeklyCommunitySummaryGenerator:
             "chronological_summary", relevant_emails, topic_str
         )
         if isinstance(topic, dict):
-            topic['chronological_summary'] = topic_summary
+            topic["chronological_summary"] = topic_summary
 
     def _build_result(
         self,
         topics: List[Any],
         recent_emails: Any,
         date_start: datetime,
-        date_end: datetime
+        date_end: datetime,
     ) -> Dict[str, Any]:
         """Build the final result dictionary."""
-        email_count = len(recent_emails.get(
-            'documents', recent_emails.get('ids', [])))
+        email_count = len(recent_emails.get("documents", recent_emails.get("ids", [])))
         return {
             "summary_by_topic": topics,
             "overall_stats": {
-                "topics_count": len(topics),
                 "recent_emails": email_count,
                 "date_range": {
                     "start": (
@@ -164,11 +162,7 @@ class WeeklyCommunitySummaryGenerator:
                     ),
                 },
             },
-            "ai_generated": True,
-            "warning": (
-                "This summary is AI-generated from retrieved discussions. "
-                "Please verify accuracy."
-            ),
+            "ai_model_info": self._get_ai_model_info(),
         }
 
     def generate(self) -> Dict[str, Any]:
@@ -187,16 +181,18 @@ class WeeklyCommunitySummaryGenerator:
             # 1. Get recent emails for topic identification
             recent_emails = self._get_recent_emails(date_start, date_end)
             if not recent_emails:
-                return self._build_empty_result(date_start, date_end, "No recent emails found")
+                return self._build_empty_result(
+                    date_start, date_end, "No recent emails found"
+                )
 
             # 2. Extract main topics from recent discussions
             topics = self._extract_topics(recent_emails)
-            email_count = len(recent_emails.get(
-                'documents', recent_emails.get('ids', [])))
+            email_count = len(
+                recent_emails.get("documents", recent_emails.get("ids", []))
+            )
             if not topics:
                 return self._build_empty_result(
-                    date_start, date_end, "No topics extracted",
-                    email_count
+                    date_start, date_end, "No topics extracted", email_count
                 )
 
             # 3. Retrieve all mails related to each topic and generate chronological summary
@@ -204,29 +200,21 @@ class WeeklyCommunitySummaryGenerator:
                 self._process_topic(topic, date_start - timedelta(days=-1))
 
             # 4. Build final result
-            result = self._build_result(
-                topics, recent_emails, date_start, date_end)
-            self.logger.info(
-                f"Summary generation completed: {len(topics)} topics")
+            result = self._build_result(topics, recent_emails, date_start, date_end)
+            self.logger.info(f"Summary generation completed: {len(topics)} topics")
             return result
 
         except Exception as e:
-            self.logger.exception(
-                f"Error generating weekly community summary: {e}")
+            self.logger.exception(f"Error generating weekly community summary: {e}")
             return {
                 "summary_by_topic": {},
                 "overall_stats": {},
-                "ai_generated": True,
                 "error": str(e),
                 "message": "Summary generation failed",
             }
 
     def _build_empty_result(
-        self,
-        date_start,
-        date_end,
-        message: str,
-        recent_emails_count: int = 0
+        self, date_start, date_end, message: str, recent_emails_count: int = 0
     ) -> Dict[str, Any]:
         """Build empty result structure"""
         # Handle date_start and date_end - they might be datetime objects or timestamps
@@ -243,16 +231,24 @@ class WeeklyCommunitySummaryGenerator:
         return {
             "summary_by_topic": {},
             "overall_stats": {
-                "topics_count": 0,
                 "recent_emails": recent_emails_count,
                 "date_range": {
                     "start": start_str,
                     "end": end_str,
                 },
             },
-            "ai_generated": True,
             "message": message,
         }
+
+    def _get_ai_model_info(self) -> Dict[str, str]:
+        """Return information about the LLM that generated the summaries."""
+        helper = getattr(self.topic_extractor, "llm_helper", None)
+        if helper:
+            try:
+                return helper.get_model_info()
+            except Exception:  # pragma: no cover - best-effort logging only
+                self.logger.warning("Unable to fetch LLM model info")
+        return {"model_type": "unknown", "model_name": "unknown"}
 
 
 # Backward compatibility function

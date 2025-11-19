@@ -21,11 +21,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--deactivate-existing",
-            action="store_true",
-            help="Deactivate all existing summaries before creating a new one",
-        )
-        parser.add_argument(
             "--test",
             action="store_true",
             default=False,
@@ -49,6 +44,7 @@ class Command(BaseCommand):
                 self.stdout.write("Generating summary data...")
                 # Import here to avoid dependency issues when using --test
                 from rag_service.tasks import generate_weekly_community_summary
+
                 summary_data = generate_weekly_community_summary()
 
             if not summary_data:
@@ -84,18 +80,6 @@ class Command(BaseCommand):
             else:
                 end_date = datetime.now()
 
-            # Deactivate existing summaries if requested
-            if options["deactivate_existing"]:
-                deactivated_count = CommunitySummary.objects.filter(
-                    is_active=True
-                ).update(is_active=False)
-                if deactivated_count > 0:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"Deactivated {deactivated_count} existing summary(ies)"
-                        )
-                    )
-
             # Create new summary
             # For test summaries, set need_review=False so they display immediately
             need_review = not options.get("test", False)
@@ -105,7 +89,6 @@ class Command(BaseCommand):
                 summary_data=summary_data,
                 topics_count=overall_stats.get("topics_count", 0),
                 recent_emails_count=overall_stats.get("recent_emails", 0),
-                is_active=True,
                 need_review=need_review,
             )
 
@@ -116,7 +99,7 @@ class Command(BaseCommand):
                     f"  Date Range: {start_date.date()} to {end_date.date()}\n"
                     f"  Topics: {community_summary.topics_count}\n"
                     f"  Recent Emails: {community_summary.recent_emails_count}\n"
-                    f"  Active: {community_summary.is_active}"
+                    f"  Need Review: {community_summary.need_review}"
                 )
             )
 
@@ -128,61 +111,86 @@ class Command(BaseCommand):
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
 
-
         return {
             "summary_by_topic": [
                 {
                     "subject": "Test Topic: Boost Library Updates",
-                    "assertions":[
+                    "assertions": [
                         {
                             "content": "needs for this library",
-                            "reference url": ["https://example.com/url1", "https://example.com/url2"]
+                            "reference url": [
+                                "https://example.com/url1",
+                                "https://example.com/url2",
+                            ],
                         },
                         {
                             "content": "relation with boost.asio",
-                            "reference url": ["https://example.com/url3", "https://example.com/url4"]
+                            "reference url": [
+                                "https://example.com/url3",
+                                "https://example.com/url4",
+                            ],
                         },
                         {
                             "content": "Pros and cons of this library",
-                            "reference url": ["https://example.com/url5", "https://example.com/url6"]
+                            "reference url": [
+                                "https://example.com/url5",
+                                "https://example.com/url6",
+                            ],
                         },
                     ],
-                    "chronological_summary":[
+                    "chronological_summary": [
                         {
                             "Date": "2018-09-10",
                             "summary": "importance of this library",
-                            "reference url": ["https://example.com/url7", "https://example.com/url8"]
+                            "reference url": [
+                                "https://example.com/url7",
+                                "https://example.com/url8",
+                            ],
                         },
                         {
                             "Date": "2021-02-20",
                             "summary": "advanced properties of this library",
-                            "reference url": ["https://example.com/url9", "https://example.com/url10"]
+                            "reference url": [
+                                "https://example.com/url9",
+                                "https://example.com/url10",
+                            ],
                         },
                     ],
-
                 },
                 {
                     "subject": "Test Topic: Community Discussions",
-                    "assertions":[
+                    "assertions": [
                         {
                             "content": "needs for this Community",
-                            "reference url": ["https://example.com/url11", "https://example.com/url12"]
+                            "reference url": [
+                                "https://example.com/url11",
+                                "https://example.com/url12",
+                            ],
                         },
                         {
                             "content": "Pros and cons of this Community",
-                            "reference url": ["https://example.com/url13", "https://example.com/url14"]
+                            "reference url": [
+                                "https://example.com/url13",
+                                "https://example.com/url14",
+                            ],
                         },
                     ],
-                    "chronological_summary":[
+                    "chronological_summary": [
                         {
                             "Date": "2018-09-10",
                             "summary": "Should update community page",
-                            "reference url": ["https://example.com/url15", "https://example.com/url16"]
+                            "reference url": [
+                                "https://example.com/url15",
+                                "https://example.com/url16",
+                            ],
                         },
                         {
                             "Date": "2021-02-20",
                             "summary": "advanced properties of community page",
-                            "reference url": ["https://example.com/url17", "https://example.com/url18"]
+                            "reference url": [
+                                "https://example.com/url17",
+                                "https://example.com/url18",
+                            ],
                         },
                     ],
                 },
@@ -198,4 +206,3 @@ class Command(BaseCommand):
             "ai_generated": True,
             "warning": "This is a test summary for development purposes.",
         }
-

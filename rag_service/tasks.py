@@ -8,18 +8,19 @@ These tasks handle:
 - Uploading vector data to S3
 """
 
-import structlog
+import copy
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
+import structlog
 from celery import shared_task
 from dateutil.parser import parse
 
-from .models import CommunitySummary
-from .services import RAGService
 from .langchain_rag.task.community_task import WeeklyCommunitySummaryGenerator
 from .langchain_rag.task.mail_data_retriever import MailDataRetriever
+from .models import CommunitySummary
 from .s3_utils import upload_vector_data_to_s3 as _upload_vector_data_to_s3
+from .services import RAGService
 
 logger = structlog.get_logger(__name__)
 
@@ -28,7 +29,7 @@ logger = structlog.get_logger(__name__)
 def generate_weekly_community_summary():
     """Generate weekly community summary."""
     # start_date = datetime.now() - timedelta(days = 7)
-    start_date = datetime(2025, 9, 20, 0, 0, 0)
+    start_date = datetime(2025, 9, 20, 0, 0, 0)  # for test
     generator = WeeklyCommunitySummaryGenerator(
         source="chromadb",
         limit=200,
@@ -218,29 +219,30 @@ def update_summary_data():
 
     try:
         summary_data = generate_weekly_community_summary()
+        summary_by_topic = {}
+        summary_by_topic["summary_by_topic"] = summary_data.get("summary_by_topic", [])
+        topic_count = len(summary_by_topic["summary_by_topic"])
         overall_stats = summary_data.get("overall_stats", {})
         date_range = overall_stats.get("date_range", {})
+        model_info = summary_data.get("ai_model_info", {})
 
         start_date = _parse_date_from_summary(
-            date_range.get("start"),
-            datetime.now() - timedelta(days=7)
+            date_range.get("start"), datetime.now() - timedelta(days=7)
         )
-        end_date = _parse_date_from_summary(
-            date_range.get("end"),
-            datetime.now()
-        )
+        end_date = _parse_date_from_summary(date_range.get("end"), datetime.now())
 
-        # Deactivate all existing summaries
-        CommunitySummary.objects.filter(is_active=True).update(is_active=False)
+        original_data = copy.deepcopy(summary_by_topic)
+        published_data = copy.deepcopy(summary_by_topic)
 
-        # Create new summary
+        # Create new summary (need_review=True by default, will be set to False by Wagtail after review)
         community_summary = CommunitySummary.objects.create(
             start_date=start_date,
             end_date=end_date,
-            summary_data=summary_data,
-            topics_count=overall_stats.get("topics_count", 0),
+            original_summary_data=original_data,
+            summary_data=published_data,
+            topics_count=topic_count,
             recent_emails_count=overall_stats.get("recent_emails", 0),
-            is_active=True,
+            model_info=model_info,
         )
 
         logger.info(
@@ -355,4 +357,3 @@ def validate_and_modify_metadata():
     except Exception as e:
         logger.exception("Error validating and modifying metadata", error=str(e))
         return False
-

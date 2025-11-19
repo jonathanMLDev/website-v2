@@ -4,8 +4,8 @@ Django models for RAG Service
 Models for storing RAG-generated summaries and metadata.
 """
 
+from django.conf import settings
 from django.db import models
-from django.utils import timezone
 
 
 class CommunitySummary(models.Model):
@@ -13,19 +13,41 @@ class CommunitySummary(models.Model):
 
     start_date = models.DateTimeField(help_text="Start date of the summary period")
     end_date = models.DateTimeField(help_text="End date of the summary period")
-    summary_data = models.JSONField(help_text="Summary data by topic")
+    original_summary_data = models.JSONField(
+        default=dict,
+        help_text="Raw summary data before reviewer revisions",
+        editable=False,
+    )
+    summary_data = models.JSONField(help_text="Published summary data by topic")
     topics_count = models.IntegerField(default=0)
     recent_emails_count = models.IntegerField(default=0)
     generated_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True, help_text="Whether this summary is currently active")
-    need_review = models.BooleanField(default=True, help_text="Whether this summary needs review before being displayed")
+    last_modified_at = models.DateTimeField(
+        auto_now=True, help_text="Timestamp of the latest modification"
+    )
+    main_reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="main_reviewed_summaries",
+        help_text="Reviewer responsible for the published summary",
+    )
+    need_review = models.BooleanField(
+        default=True,
+        help_text="Whether this summary needs review before being displayed (False = reviewed and ready to display)",
+    )
+    model_info = models.JSONField(
+        default=dict,
+        help_text="Metadata about the AI model used to generate the summary",
+        blank=True,
+    )
 
     class Meta:
         verbose_name = "Community Summary"
         verbose_name_plural = "Community Summaries"
         ordering = ["-generated_at"]
         indexes = [
-            models.Index(fields=["-generated_at", "is_active"]),
             models.Index(fields=["-generated_at", "need_review"]),
         ]
 
@@ -37,14 +59,12 @@ class LibrarySummary(models.Model):
     """Stores AI-generated summaries for Boost libraries"""
 
     library = models.ForeignKey(
-        "libraries.Library",
-        on_delete=models.CASCADE,
-        related_name="rag_summaries"
+        "libraries.Library", on_delete=models.CASCADE, related_name="rag_summaries"
     )
     version = models.ForeignKey(
         "versions.Version",
         on_delete=models.CASCADE,
-        related_name="library_rag_summaries"
+        related_name="library_rag_summaries",
     )
     summary_text = models.TextField(help_text="AI-generated summary of the library")
     key_features = models.JSONField(default=list, help_text="List of key features")
@@ -66,9 +86,7 @@ class LibraryFAQ(models.Model):
     """Stores AI-generated FAQs for Boost libraries"""
 
     library = models.ForeignKey(
-        "libraries.Library",
-        on_delete=models.CASCADE,
-        related_name="rag_faqs"
+        "libraries.Library", on_delete=models.CASCADE, related_name="rag_faqs"
     )
     question = models.TextField()
     answer = models.TextField()
@@ -86,4 +104,3 @@ class LibraryFAQ(models.Model):
 
     def __str__(self):
         return f"{self.library.name}: {self.question[:50]}..."
-

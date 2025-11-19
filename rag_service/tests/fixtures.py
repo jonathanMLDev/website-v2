@@ -7,8 +7,6 @@ from datetime import datetime, timedelta
 import pytest
 from model_bakery import baker
 
-from rag_service.models import CommunitySummary, LibraryFAQ, LibrarySummary
-
 
 @pytest.fixture
 def community_summary(db):
@@ -23,7 +21,10 @@ def community_summary(db):
                 "assertions": [
                     {
                         "content": "needs for this library",
-                        "reference url": ["https://example.com/url1", "https://example.com/url2"],
+                        "reference url": [
+                            "https://example.com/url1",
+                            "https://example.com/url2",
+                        ],
                     },
                     {
                         "content": "relation with boost.asio",
@@ -62,7 +63,6 @@ def community_summary(db):
         summary_data=summary_data,
         topics_count=1,
         recent_emails_count=15,
-        is_active=True,
         need_review=False,
     )
 
@@ -93,7 +93,6 @@ def community_summary_needs_review(db):
         summary_data=summary_data,
         topics_count=0,
         recent_emails_count=0,
-        is_active=True,
         need_review=True,
     )
 
@@ -121,4 +120,3 @@ def library_faq(db, library):
         answer="This is a test library for Boost.",
         is_active=True,
     )
-

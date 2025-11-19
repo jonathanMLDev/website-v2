@@ -14,23 +14,21 @@ from .docu_preprocessor import DocuPreprocessor
 class BoostDataProcessor:
     """Process Boost library documentation and mail data for RAG (Backward compatibility)"""
 
-    def __init__(
-        self,
-        config: Optional[Any] = None
-    ):
+    def __init__(self, config: Optional[Any] = None):
         if config is None:
             from config.rag_config import DEFAULT_CONFIG
+
             config = DEFAULT_CONFIG
 
         self.mail_preprocessor = MailPreprocessor(
             mail_data_dir=config.mail_data_dir,
             chunk_size=config.chunk_size,
-            chunk_overlap=config.chunk_overlap
+            chunk_overlap=config.chunk_overlap,
         )
         self.docu_preprocessor = DocuPreprocessor(
             doc_data_dir=config.doc_data_dir,
             chunk_size=config.chunk_size,
-            chunk_overlap=config.chunk_overlap
+            chunk_overlap=config.chunk_overlap,
         )
 
     def load_documents_and_emails(self) -> List[Document]:

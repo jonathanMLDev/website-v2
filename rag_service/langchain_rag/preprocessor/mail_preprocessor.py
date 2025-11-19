@@ -24,10 +24,7 @@ class MailPreprocessor:
     """Process Boost mailing list data for RAG"""
 
     def __init__(
-        self,
-        mail_data_dir: str = "",
-        chunk_size: int = 512,
-        chunk_overlap: int = 50
+        self, mail_data_dir: str = "", chunk_size: int = 512, chunk_overlap: int = 50
     ):
         self.mail_data_dir = Path(mail_data_dir)
         self.chunk_size = chunk_size
@@ -38,6 +35,7 @@ class MailPreprocessor:
         self.logger = logger.bind(component="MailPreprocessor")
 
         from config.rag_config import DEFAULT_CONFIG
+
         self.llm_helper = LLMHelper(config=DEFAULT_CONFIG)
 
     def load_emails(self) -> List[Document]:
@@ -51,7 +49,9 @@ class MailPreprocessor:
         """Process Boost mailing list data"""
         documents = []
 
-        for thread_file in tqdm(mail_path.rglob("*.json"), desc="Processing mail threads"):
+        for thread_file in tqdm(
+            mail_path.rglob("*.json"), desc="Processing mail threads"
+        ):
             try:
                 with open(thread_file, "r", encoding="utf-8") as f:
                     mail_data = json.load(f)
@@ -83,11 +83,7 @@ class MailPreprocessor:
                 if content:
                     doc_id = self._create_doc_id_from_message(message)
                     metadata = self.complete_metadata(message, content)
-                    doc = Document(
-                        page_content=content,
-                        id=doc_id,
-                        metadata=metadata
-                    )
+                    doc = Document(page_content=content, id=doc_id, metadata=metadata)
                     documents.append(doc)
         except Exception as e:
             print(f"Error processing mail thread: {e}")
@@ -170,18 +166,14 @@ class MailPreprocessor:
         msg_id = raw_message.get("message_id", "Unknown")
         if "@@" not in msg_id:
             msg_id = f"@@MailingList@@{msg_id}"
-        thread_url = raw_message.get(
-            "thread_url", raw_message.get("thread", "")
-        )
+        thread_url = raw_message.get("thread_url", raw_message.get("thread", ""))
         subject = raw_message.get("subject", "")
         author_info = raw_message.get(
             "sender_address", raw_message.get("sender_name", "Unknown")
         )
         date_value = raw_message.get("date")
         date_timestamp = self._parse_date_to_timestamp(date_value)
-        message_url = raw_message.get(
-            "message_url", raw_message.get("url", "Unknown")
-        )
+        message_url = raw_message.get("message_url", raw_message.get("url", "Unknown"))
 
         metadata["source"] = msg_id
         metadata["type"] = "mail"
@@ -216,9 +208,7 @@ class MailPreprocessor:
         try:
             metadata["categories"] = llm_helper.process_pipeline("classify", content)
             metadata["sentiment"] = llm_helper.process_pipeline("sentiment", content)
-            metadata["libraries"] = llm_helper.process_pipeline(
-                "libraries", content
-            )
+            metadata["libraries"] = llm_helper.process_pipeline("libraries", content)
         except Exception:  # pragma: no cover
             pass
 
@@ -249,9 +239,7 @@ class MailPreprocessor:
 
         basic_metadata = self._extract_basic_metadata(message)
 
-        complement_metadata = self._extract_llm_metadata(
-            message, content, llm_helper
-        )
+        complement_metadata = self._extract_llm_metadata(message, content, llm_helper)
         metadata = (basic_metadata or {}) | (complement_metadata or {})
 
         return metadata

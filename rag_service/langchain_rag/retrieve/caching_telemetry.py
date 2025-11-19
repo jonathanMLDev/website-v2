@@ -3,18 +3,19 @@ Caching and Telemetry System for LangChain RAG Performance Monitoring
 Adapted from original RAG implementation
 """
 
-from typing import List, Dict, Any, Optional, Callable
-from pathlib import Path
-import json
-import hashlib
-import time
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+import hashlib
+import json
+from pathlib import Path
 import pickle
+import time
+from typing import Any, Callable, Dict, List, Optional
+
+from langchain_core.documents import Document
 import structlog
 
 logger = structlog.get_logger(__name__)
-from langchain_core.documents import Document
 
 
 class QueryCache:
@@ -182,7 +183,9 @@ class QueryCache:
                         removed_count += 1
                 except Exception as e:
                     # If we can't read the file, consider it corrupt and remove it
-                    self.logger.warning(f"Removing corrupt cache file {cache_file.name}: {e}")
+                    self.logger.warning(
+                        f"Removing corrupt cache file {cache_file.name}: {e}"
+                    )
                     try:
                         cache_file.unlink()
                         removed_count += 1
@@ -207,7 +210,9 @@ class QueryCache:
 
             for cache_file in self.cache_dir.glob("*.pkl"):
                 try:
-                    file_size = cache_file.stat().st_size / (1024 * 1024)  # Convert to MB
+                    file_size = cache_file.stat().st_size / (
+                        1024 * 1024
+                    )  # Convert to MB
                     total_size_mb += file_size
 
                     # Try to get timestamp from file content
@@ -215,11 +220,13 @@ class QueryCache:
                         entry = pickle.load(f)
                     timestamp = entry.get("timestamp", cache_file.stat().st_mtime)
 
-                    cache_files.append({
-                        "path": cache_file,
-                        "size_mb": file_size,
-                        "timestamp": timestamp,
-                    })
+                    cache_files.append(
+                        {
+                            "path": cache_file,
+                            "size_mb": file_size,
+                            "timestamp": timestamp,
+                        }
+                    )
                 except Exception:
                     # Skip files we can't read
                     continue
@@ -285,7 +292,11 @@ class QueryCache:
             "total_size_bytes": total_size_bytes,
             "file_count": file_count,
             "max_size_mb": self.max_disk_size_mb,
-            "utilization": (total_size_bytes / (1024 * 1024)) / self.max_disk_size_mb if self.max_disk_size_mb > 0 else 0,
+            "utilization": (
+                (total_size_bytes / (1024 * 1024)) / self.max_disk_size_mb
+                if self.max_disk_size_mb > 0
+                else 0
+            ),
         }
 
     def get_stats(self) -> Dict[str, Any]:
@@ -480,7 +491,9 @@ class CachedRetriever:
         self.cache = cache or QueryCache()
         self.logger = logger.bind(component="CachedRetriever")
 
-    def retrieve(self, query: str, fetch_k: int = 10, filter_types: List[str] = None, **kwargs) -> List[Document]:
+    def retrieve(
+        self, query: str, fetch_k: int = 10, filter_types: List[str] = None, **kwargs
+    ) -> List[Document]:
         """Retrieve with caching."""
         # Create cache context from kwargs and filter_types
         context_parts = [f"k={fetch_k}"]
@@ -521,7 +534,9 @@ class InstrumentedRetriever:
         self.stage_name = stage_name
         self.logger = logger.bind(component="InstrumentedRetriever")
 
-    def retrieve(self, query: str, fetch_k: int = 10, filter_types: List[str] = None, **kwargs) -> List[Document]:
+    def retrieve(
+        self, query: str, fetch_k: int = 10, filter_types: List[str] = None, **kwargs
+    ) -> List[Document]:
         """Retrieve with telemetry."""
         # Start tracking
         self.telemetry.start_stage(self.stage_name)
@@ -582,4 +597,3 @@ def cached_function(cache: Optional[QueryCache] = None, ttl: Optional[int] = Non
         return wrapper
 
     return decorator
-

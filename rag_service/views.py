@@ -2,6 +2,7 @@
 Django views for RAG Service.
 """
 
+from ast import Dict
 from dateutil.parser import parse as parse_date
 from django.views.generic import TemplateView
 
@@ -39,13 +40,19 @@ class CommunitySummaryView(TemplateView):
         # Get the latest community summary that has been reviewed (need_review=False)
         summary = (
             CommunitySummary.objects.filter(need_review=False)
-            .order_by('-generated_at')
+            .order_by("-generated_at")
             .first()
         )
 
         if summary:
             context["community_summary"] = summary
-            summary_by_topic = summary.summary_data.get("summary_by_topic", [])
+            raw_summary = summary.summary_data
+            if isinstance(raw_summary, Dict):
+                summary_by_topic = raw_summary
+            else:
+                summary_by_topic["summary_by_topic"] = raw_summary.get(
+                    "summary_by_topic", []
+                )
 
             # Collect all unique URLs and create reference number mapping
             all_urls = self._collect_all_urls(summary_by_topic)
@@ -58,14 +65,21 @@ class CommunitySummaryView(TemplateView):
             # For debugging/backward compatibility
             context["url_reference_map"] = url_to_number
 
-            # Parse and add overall stats
-            overall_stats_data = summary.summary_data.get("overall_stats", {})
-            overall_stats = self._parse_overall_stats(overall_stats_data)
+            # Build overall stats from stored fields
+            overall_stats = {
+                "recent_emails": summary.recent_emails_count,
+                "date_range": {
+                    "start": summary.start_date.isoformat(),
+                    "end": summary.end_date.isoformat(),
+                },
+            }
             context["overall_stats"] = overall_stats
+            context["ai_model_info"] = summary.model_info or {}
         else:
             context["community_summary"] = None
             context["summary_by_topic"] = []
             context["overall_stats"] = {}
+            context["ai_model_info"] = {}
 
         return context
 
@@ -85,9 +99,8 @@ class CommunitySummaryView(TemplateView):
             # Collect URLs from assertions
             if "assertions" in topic:
                 for assertion in topic["assertions"]:
-                    urls = (
-                        assertion.get("reference url") or
-                        assertion.get("reference_url", [])
+                    urls = assertion.get("reference url") or assertion.get(
+                        "reference_url", []
                     )
                     if isinstance(urls, list):
                         for url in urls:
@@ -137,8 +150,8 @@ class CommunitySummaryView(TemplateView):
 
             # Normalize key from "reference url" to "reference_url"
             if "reference url" in normalized_assertion:
-                normalized_assertion["reference_url"] = (
-                    normalized_assertion.pop("reference url")
+                normalized_assertion["reference_url"] = normalized_assertion.pop(
+                    "reference url"
                 )
 
             # Add reference numbers paired with URLs
@@ -148,18 +161,17 @@ class CommunitySummaryView(TemplateView):
                     normalized_assertion["reference_urls_with_numbers"] = [
                         {
                             "url": self.email_url_to_message_url(url),
-                            "number": url_to_number.get(url, 0)
+                            "number": url_to_number.get(url, 0),
                         }
-                        for url in ref_urls if url
+                        for url in ref_urls
+                        if url
                     ]
 
             normalized_assertions.append(normalized_assertion)
 
         return normalized_assertions, len(normalized_assertions)
 
-    def _normalize_chronological_summary(
-        self, chronological_list, url_to_number
-    ):
+    def _normalize_chronological_summary(self, chronological_list, url_to_number):
         """
         Normalize chronological summary entries by converting reference URLs
         and adding reference numbers.
@@ -180,7 +192,9 @@ class CommunitySummaryView(TemplateView):
 
             # Normalize key from "reference url" to "reference_url"
             if "reference url" in normalized_entry:
-                normalized_entry["reference_url"] = normalized_entry.pop("reference url")
+                normalized_entry["reference_url"] = normalized_entry.pop(
+                    "reference url"
+                )
 
             # Add reference numbers paired with URLs
             if "reference_url" in normalized_entry:
@@ -189,9 +203,10 @@ class CommunitySummaryView(TemplateView):
                     normalized_entry["reference_urls_with_numbers"] = [
                         {
                             "url": self.email_url_to_message_url(url),
-                            "number": url_to_number.get(url, 0)
+                            "number": url_to_number.get(url, 0),
                         }
-                        for url in ref_urls if url
+                        for url in ref_urls
+                        if url
                     ]
 
             normalized_chronological.append(normalized_entry)

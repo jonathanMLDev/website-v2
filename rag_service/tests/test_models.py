@@ -29,7 +29,6 @@ def test_community_summary_defaults():
         summary_data={},
     )
 
-    assert summary.is_active is True
     assert summary.need_review is True
     assert summary.topics_count == 0
     assert summary.recent_emails_count == 0
@@ -51,6 +50,7 @@ def test_community_summary_ordering():
 
     # Create second summary after a short delay to ensure different generated_at
     import time
+
     time.sleep(0.01)
 
     summary2 = baker.make(
@@ -68,7 +68,9 @@ def test_community_summary_ordering():
 @pytest.mark.django_db
 def test_library_summary_str(library_summary):
     """Test LibrarySummary string representation."""
-    expected = f"{library_summary.library.name} - {library_summary.version.name} Summary"
+    expected = (
+        f"{library_summary.library.name} - {library_summary.version.name} Summary"
+    )
     assert str(library_summary) == expected
 
 
@@ -131,14 +133,14 @@ def test_library_faq_defaults(db, library):
 @pytest.mark.django_db
 def test_library_faq_ordering(db, library):
     """Test that LibraryFAQ objects are ordered by library and question."""
-    faq1 = baker.make(
+    _faq1 = baker.make(
         "rag_service.LibraryFAQ",
         library=library,
         question="B question?",
         answer="Answer 1",
     )
 
-    faq2 = baker.make(
+    _faq2 = baker.make(
         "rag_service.LibraryFAQ",
         library=library,
         question="A question?",
@@ -149,4 +151,3 @@ def test_library_faq_ordering(db, library):
     # Should be ordered by question, so A comes before B
     assert faqs[0].question == "A question?"
     assert faqs[1].question == "B question?"
-

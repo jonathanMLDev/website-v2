@@ -30,7 +30,9 @@ _embedding_model_cache: Dict[str, HuggingFaceEmbeddings] = {}
 _cache_lock = threading.Lock()
 
 
-def get_cached_embedding_model(model_name: str, device: str = None) -> HuggingFaceEmbeddings:
+def get_cached_embedding_model(
+    model_name: str, device: str = None
+) -> HuggingFaceEmbeddings:
     """
     Get or create a cached embedding model instance.
 
@@ -48,6 +50,7 @@ def get_cached_embedding_model(model_name: str, device: str = None) -> HuggingFa
     if device is None:
         try:
             import torch
+
             device = "cuda" if torch.cuda.is_available() else "cpu"
         except ImportError:
             device = "cpu"
@@ -57,7 +60,9 @@ def get_cached_embedding_model(model_name: str, device: str = None) -> HuggingFa
 
     with _cache_lock:
         if cache_key not in _embedding_model_cache:
-            logger.info(f"Loading embedding model: {model_name} on {device} (first time)")
+            logger.info(
+                f"Loading embedding model: {model_name} on {device} (first time)"
+            )
             _embedding_model_cache[cache_key] = HuggingFaceEmbeddings(
                 model_name=model_name,
                 model_kwargs={"device": device},
@@ -77,8 +82,18 @@ class LangChainHybridRetriever:
         config: Any,
         chroma_persist_dir: str = None,
     ):
+        """
+        Create a new hybrid retriever instance.
+
+        Args:
+            config: Configuration object providing embedding model, top-k values,
+                persistence paths, and other knobs from ``LangChainConfig``.
+            chroma_persist_dir: Optional override directory for storing ChromaDB
+                artifacts; defaults to ``config.chroma_persist_dir``.
+        """
         if config is None:
             from config.rag_config import DEFAULT_CONFIG
+
             config = DEFAULT_CONFIG
 
         self.documents = []
@@ -93,11 +108,7 @@ class LangChainHybridRetriever:
         self.dense_retriever = None
         self.half_life = config.half_life
         # Initialize components
-        try:
-            self._setup_embedding_model()
-        except Exception as e:
-            self.logger.exception("Failed to initialize LangChainHybridRetriever: %s", e)
-            raise
+        self._setup_embedding_model()
 
     def reindex(self, documents: List[Document], status: dict = None):
         """Reindex the hybrid retriever - create new indices from documents"""
@@ -123,8 +134,11 @@ class LangChainHybridRetriever:
                 status["sparse_retriever"] = self._create_sparse_retriever()
 
             self.logger.info("Reindex completed successfully")
-        except Exception as e:
+        except (
+            Exception
+        ) as e:  # pragma: no cover - unexpected failures should surface to callers
             self.logger.exception("Failed to reindex: %s", e)
+            raise
 
     def load_index(self) -> dict:
         """Load the hybrid retriever index - load from saved data"""
@@ -133,14 +147,9 @@ class LangChainHybridRetriever:
             "sparse_retriever": False,
         }
 
-        try:
-            self.logger.info(
-                f"Loading existing indices from {self.chroma_persist_dir}"
-            )
-            status["vector_store"] = self._load_vector_store()
-            status["sparse_retriever"] = self._load_sparse_retriever()
-        except Exception as e:
-            self.logger.exception("Failed to load indices: %s", e)
+        self.logger.info(f"Loading existing indices from {self.chroma_persist_dir}")
+        status["vector_store"] = self._load_vector_store()
+        status["sparse_retriever"] = self._load_sparse_retriever()
 
         return status
 
@@ -184,12 +193,12 @@ class LangChainHybridRetriever:
         try:
             device = "cuda" if self._is_cuda_available() else "cpu"
             self.embedding_model = get_cached_embedding_model(
-                model_name=self.embedding_model_name,
-                device=device
+                model_name=self.embedding_model_name, device=device
             )
             self.logger.info(
                 "Embedding model initialized (cached): %s on %s",
-                self.embedding_model_name, device
+                self.embedding_model_name,
+                device,
             )
         except Exception as e:
             self.logger.exception("Failed to initialize embedding model: %s", e)
@@ -210,9 +219,11 @@ class LangChainHybridRetriever:
             # Add documents in batches with progress tracking
             total_docs = len(self.documents)
 
-            with tqdm(total=total_docs, desc="Vectorizing documents", unit="doc") as pbar:
+            with tqdm(
+                total=total_docs, desc="Vectorizing documents", unit="doc"
+            ) as pbar:
                 for i in range(0, total_docs, batch_size):
-                    batch = self.documents[i:i + batch_size]
+                    batch = self.documents[i : i + batch_size]
                     self.vector_store.add_documents(batch)
                     pbar.update(len(batch))
 
@@ -221,12 +232,12 @@ class LangChainHybridRetriever:
             # Create dense retriever
             self.dense_retriever = self.vector_store.as_retriever(
                 search_type="similarity_score_threshold",
-                search_kwargs={
-                    "k": self.dense_top_k,
-                    "score_threshold": 0.3},
+                search_kwargs={"k": self.dense_top_k, "score_threshold": 0.3},
             )
 
-            self.logger.info("Vector store and dense retriever initialized successfully")
+            self.logger.info(
+                "Vector store and dense retriever initialized successfully"
+            )
             return True
         except Exception as e:
             self.logger.exception("Failed to create vector store: %s", e)
@@ -240,8 +251,7 @@ class LangChainHybridRetriever:
             # Check if ChromaDB directory exists and has data
             if not os.path.exists(self.chroma_persist_dir):
                 self.logger.info(
-                    "ChromaDB directory does not exist: %s",
-                    self.chroma_persist_dir
+                    "ChromaDB directory does not exist: %s", self.chroma_persist_dir
                 )
                 return False
 
@@ -282,10 +292,7 @@ class LangChainHybridRetriever:
             # Create dense retriever
             self.dense_retriever = self.vector_store.as_retriever(
                 search_type="similarity_score_threshold",
-                search_kwargs={
-                    "k": self.dense_top_k,
-                    "score_threshold": 0.3
-                    },
+                search_kwargs={"k": self.dense_top_k, "score_threshold": 0.3},
             )
 
             self.logger.info("Vector store loaded successfully")
@@ -311,9 +318,7 @@ class LangChainHybridRetriever:
 
             # Save TF-IDF vectorizer
             os.makedirs(self.chroma_persist_dir, exist_ok=True)
-            tfidf_path = os.path.join(
-                self.chroma_persist_dir, "tfidf_vectorizer.pkl"
-            )
+            tfidf_path = os.path.join(self.chroma_persist_dir, "tfidf_vectorizer.pkl")
             with open(tfidf_path, "wb") as f:
                 pickle.dump(self.tfidf_vectorizer, f)
 
@@ -333,7 +338,8 @@ class LangChainHybridRetriever:
             if not os.path.exists(tfidf_path):
                 self.logger.info(
                     "TF-IDF vectorizer file not found: %s "
-                    "(will be created during reindexing)", tfidf_path
+                    "(will be created during reindexing)",
+                    tfidf_path,
                 )
                 return False
 
@@ -346,11 +352,14 @@ class LangChainHybridRetriever:
         except Exception as e:
             self.logger.warning(
                 "Failed to load TF-IDF vectorizer: %s "
-                "(will be created during reindexing)", e
+                "(will be created during reindexing)",
+                e,
             )
             return False
 
-    def retrieve(self, query: str, fetch_k: int = 10, filters: Dict[str, Any] = None) -> List[Document]:
+    def retrieve(
+        self, query: str, fetch_k: int = 10, filters: Dict[str, Any] = None
+    ) -> List[Document]:
         """Perform hybrid retrieval (Dense + Sparse) with optional type filtering
 
         Args:
@@ -373,9 +382,8 @@ class LangChainHybridRetriever:
             return []
         # sparse_docs = self.sparse_retriever.invoke(query)
         sparse_retriever = BM25Retriever.from_documents(
-                documents=dense_docs,
-                k=self.sparse_top_k
-            )
+            documents=dense_docs, k=self.sparse_top_k
+        )
 
         # Sparse retrieval
         sparse_docs = sparse_retriever.invoke(query)
@@ -389,7 +397,7 @@ class LangChainHybridRetriever:
         fetch_k = min(fetch_k, len(reranked_docs))
 
         gc.collect()
-        return reranked_docs[: fetch_k]
+        return reranked_docs[:fetch_k]
 
     def _combine_results(
         self,
@@ -427,10 +435,7 @@ class LangChainHybridRetriever:
         combined_docs = []
         for doc_id, scores in combined_scores.items():
             # Weighted ensemble scoring (60% dense, 40% sparse)
-            ensemble_score = (
-                0.6 * scores["dense_score"]
-                + 0.4 * scores["sparse_score"]
-            )
+            ensemble_score = 0.6 * scores["dense_score"] + 0.4 * scores["sparse_score"]
 
             # Update document metadata with ensemble score
             doc = scores["document"]
@@ -475,7 +480,6 @@ class LangChainHybridRetriever:
                 del doc.metadata["ensemble_score"]
 
             reranked_docs.append(doc)
-
 
         # Sort by final score
         reranked_docs.sort(
@@ -560,8 +564,7 @@ class LangChainHybridRetriever:
             return len(results) > 0
         except Exception as e:
             self.logger.warning(
-                "Error checking document existence for URL %s: %s",
-                doc_url, e
+                "Error checking document existence for URL %s: %s", doc_url, e
             )
             return False
 
@@ -584,10 +587,10 @@ class LangChainHybridRetriever:
         existing_documents = []
 
         for doc in documents:
-            doc_url = doc.metadata.get('url', 'N/A')
+            doc_url = doc.metadata.get("url", "N/A")
             if self.document_exists(doc_url):
                 existing_documents.append(doc)
-                msg_id = doc.metadata.get('message_id', 'N/A')
+                msg_id = doc.metadata.get("message_id", "N/A")
                 self.logger.debug(
                     "Document %s already exists (URL: %s)", msg_id, doc_url
                 )
@@ -596,7 +599,9 @@ class LangChainHybridRetriever:
 
         self.logger.info(
             "Checked %d documents: %d new, %d already exist",
-            len(documents), len(new_documents), len(existing_documents)
+            len(documents),
+            len(new_documents),
+            len(existing_documents),
         )
 
         return new_documents, existing_documents

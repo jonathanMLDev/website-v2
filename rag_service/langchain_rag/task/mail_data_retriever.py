@@ -77,7 +77,7 @@ class MailDataRetriever:
         end_date: Optional[datetime] = None,
         limit: Optional[int] = None,
         source: Optional[Literal["hyperkitty", "chromadb", "auto"]] = None,
-        embedding_conclusion: Optional[bool] = False
+        embedding_conclusion: Optional[bool] = False,
     ) -> List[Dict[str, Any]]:
         """
         Get mail data from available source
@@ -124,7 +124,7 @@ class MailDataRetriever:
         self,
         start_date: Optional[datetime],
         end_date: Optional[datetime],
-        limit: Optional[int]
+        limit: Optional[int],
     ) -> Tuple[str, Dict[str, Any]]:
         """Build SQL query and parameters for HyperKitty email retrieval."""
         where_clauses = []
@@ -200,14 +200,14 @@ class MailDataRetriever:
         include = ["documents", "metadatas"]
         if embedding_conclusion:
             include.append("embeddings")
-        
+
         vector_store = self._get_vector_store()
 
         # If vector store doesn't exist, ChromaDB hasn't been initialized yet
         empty_result = {}
         for key in include:
             empty_result[key] = []
-        
+
         if not vector_store:
             self.logger.warning(
                 "ChromaDB vector store not initialized. "
@@ -220,9 +220,7 @@ class MailDataRetriever:
 
         # Get documents from ChromaDB
         results = vector_store.get(
-            where=where_filter,
-            include=include,
-            limit=limit or 10000
+            where=where_filter, include=include, limit=limit or 10000
         )
 
         if not results or not results.get("metadatas"):
@@ -255,12 +253,12 @@ class MailDataRetriever:
         # Get vector store from retriever
         # The RAG pipeline has hybrid_retriever which has vector_store
         if (
-            not hasattr(self.rag_service, 'base_retrievers')
-            or 'mail' not in self.rag_service.base_retrievers
+            not hasattr(self.rag_service, "base_retrievers")
+            or "mail" not in self.rag_service.base_retrievers
         ):
             return None
 
-        mail_retriever = self.rag_service.base_retrievers['mail']
+        mail_retriever = self.rag_service.base_retrievers["mail"]
         return mail_retriever.vector_store
 
     def retrieve_relevant_emails(
@@ -268,7 +266,7 @@ class MailDataRetriever:
         question: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        fetch_k: int = 30
+        fetch_k: int = 30,
     ) -> List[Dict[str, Any]]:
         """Retrieve relevant emails for a topic"""
         if not self.rag_service:
@@ -276,7 +274,6 @@ class MailDataRetriever:
             self.rag_service = RAGService.get_pipeline()
         filters = self._build_time_filter(start_date, end_date)
         return self.rag_service.retrieve(question, fetch_k, filters)
-
 
     def _build_time_filter(
         self,

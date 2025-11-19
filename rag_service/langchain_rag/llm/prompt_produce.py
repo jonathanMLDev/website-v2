@@ -22,12 +22,14 @@ class PromptProducer:
             base_agent: BaseAgent instance with category descriptions and known libraries
         """
         self.agent = base_agent
-        self.category_descriptions_text = "\n".join([
-            f"- {cat}: {desc}"
-            for cat, desc in base_agent.CATEGORY_DESCRIPTIONS.items()
-        ])
+        self.category_descriptions_text = "\n".join(
+            [
+                f"- {cat}: {desc}"
+                for cat, desc in base_agent.CATEGORY_DESCRIPTIONS.items()
+            ]
+        )
         self.valid_categories = list(base_agent.CATEGORY_DESCRIPTIONS.keys())
-        self.known_libraries_text = ', '.join(base_agent.KNOWN_LIBRARIES)
+        self.known_libraries_text = ", ".join(base_agent.KNOWN_LIBRARIES)
 
     def produce_prompt(
         self,
@@ -45,30 +47,30 @@ class PromptProducer:
         Returns:
             Tuple of (prompt, system_prompt)
         """
-        if process_type == 'classify':
+        if process_type == "classify":
             return self._produce_classify_prompt(process_data)
-        elif process_type == 'sentiment':
+        elif process_type == "sentiment":
             return self._produce_sentiment_prompt(process_data)
-        elif process_type in ['libraries', 'extract_libraries']:
+        elif process_type in ["libraries", "extract_libraries"]:
             return self._produce_libraries_prompt(process_data)
-        elif process_type == 'extract_all_meta':
+        elif process_type == "extract_all_meta":
             return self._produce_extract_all_meta_prompt(process_data)
-        elif process_type == 'extract_topics':
+        elif process_type == "extract_topics":
             return self._produce_extract_topics_prompt(process_data)
-        elif process_type == 'summarize_topic_chronologically':
+        elif process_type == "summarize_topic_chronologically":
             return self._produce_summarize_topic_chronologically_prompt(
                 process_data, topic
             )
-        elif process_type == 'total_summarize':
+        elif process_type == "total_summarize":
             return self._produce_total_summarize_prompt(process_data)
         else:
             raise ValueError(f"Unknown process type: {process_type}")
 
     def _produce_classify_prompt(self, document: Document) -> Tuple[str, str]:
         """Produce prompt for classification"""
-        subject = document.metadata.get('subject', '')
+        subject = document.metadata.get("subject", "")
         content = document.page_content
-        parent_context = document.metadata.get('parent_content', '')
+        parent_context = document.metadata.get("parent_content", "")
         text = f"Subject: {subject}\n\nContent: {content[:3000]}"
         if parent_context:
             text = f"{text}\n\nParent Context: {parent_context[:1000]}"
@@ -112,9 +114,9 @@ If no categories match well (all confidences < 0.5), return an empty object {{}}
 
     def _produce_sentiment_prompt(self, document: Document) -> Tuple[str, str]:
         """Produce prompt for sentiment extraction"""
-        subject = document.metadata.get('subject', '')
+        subject = document.metadata.get("subject", "")
         content = document.page_content
-        parent_context = document.metadata.get('parent_content', '')
+        parent_context = document.metadata.get("parent_content", "")
         text = f"Subject: {subject}\n\nContent: {content[:3000]}"
         if parent_context:
             text = f"{text}\n\nParent Context: {parent_context[:1000]}"
@@ -170,9 +172,9 @@ Or:
 
     def _produce_libraries_prompt(self, document: Document) -> Tuple[str, str]:
         """Produce prompt for library extraction"""
-        subject = document.metadata.get('subject', '')
+        subject = document.metadata.get("subject", "")
         content = document.page_content
-        parent_context = document.metadata.get('parent_content', '')
+        parent_context = document.metadata.get("parent_content", "")
         text = f"Subject: {subject}\n\nContent: {content[:3000]}"
         if parent_context:
             text = f"{text}\n\nParent Context: {parent_context[:1000]}"
@@ -221,9 +223,9 @@ If no libraries are mentioned:
 
     def _produce_extract_all_meta_prompt(self, document: Document) -> Tuple[str, str]:
         """Produce prompt for extracting all metadata"""
-        subject = document.metadata.get('subject', '')
+        subject = document.metadata.get("subject", "")
         content = document.page_content
-        parent_context = document.metadata.get('parent_content', '')
+        parent_context = document.metadata.get("parent_content", "")
         text = f"Subject: {subject}\n\nContent: {content[:3000]}"
         if parent_context:
             text = f"{text}\n\nParent Context: {parent_context[:1000]}"
@@ -295,16 +297,20 @@ confidence as value)."""
         )
         return prompt, system_prompt
 
-    def _produce_extract_topics_prompt(self, documents: List[Document]) -> Tuple[str, str]:
+    def _produce_extract_topics_prompt(
+        self, documents: List[Document]
+    ) -> Tuple[str, str]:
         """Produce prompt for topic extraction"""
         # Limit documents and content length to avoid token limits
         max_docs = min(20, len(documents))
-        combined_content = "\n\n---\n\n".join([
-            f"Subject: {doc.metadata.get('subject', 'No Subject')}\n"
-            f"Content: {doc.page_content[:800]}\n"
-            f"URL: {doc.metadata.get('url', 'N/A')}"
-            for doc in documents[:max_docs]
-        ])
+        combined_content = "\n\n---\n\n".join(
+            [
+                f"Subject: {doc.metadata.get('subject', 'No Subject')}\n"
+                f"Content: {doc.page_content[:800]}\n"
+                f"URL: {doc.metadata.get('url', 'N/A')}"
+                for doc in documents[:max_docs]
+            ]
+        )
 
         prompt = f"""Analyze these Boost C++ mailing list discussions and identify the main topics being discussed.
 
@@ -386,24 +392,21 @@ Important:
         from datetime import datetime
 
         # Sort documents by date to ensure chronological order
-        sorted_docs = sorted(
-            documents,
-            key=lambda d: d.metadata.get('date', 0)
-        )
+        sorted_docs = sorted(documents, key=lambda d: d.metadata.get("date", 0))
 
         text = ""
         for doc in sorted_docs:
             metadata = doc.metadata
-            date_timestamp = metadata.get('date', 0)
+            date_timestamp = metadata.get("date", 0)
             if isinstance(date_timestamp, (int, float)) and date_timestamp > 0:
                 current_date = datetime.fromtimestamp(date_timestamp)
                 date_str = current_date.strftime("%Y-%m-%d %H:%M:%S")
             else:
                 date_str = "Unknown date"
 
-            subject = metadata.get('subject', 'No Subject')
+            subject = metadata.get("subject", "No Subject")
             content = doc.page_content[:1000]  # Limit content length
-            url = metadata.get('url', '')
+            url = metadata.get("url", "")
 
             text += f"""
 [{date_str}] {subject}
@@ -466,14 +469,16 @@ Important:
         )
         return prompt, system_prompt
 
-    def _produce_total_summarize_prompt(self, documents: List[Document]) -> Tuple[str, str]:
+    def _produce_total_summarize_prompt(
+        self, documents: List[Document]
+    ) -> Tuple[str, str]:
         """Produce prompt for total summarization"""
         # Limit content length to avoid token limits
         text = ""
         for idx, doc in enumerate(documents[:15]):  # Limit to 15 documents
-            subject = doc.metadata.get('subject', 'No Subject')
+            subject = doc.metadata.get("subject", "No Subject")
             content = doc.page_content[:1000]  # Limit content per document
-            url = doc.metadata.get('url', '')
+            url = doc.metadata.get("url", "")
             text += f"""
 Document {idx+1}:
 Subject: {subject}

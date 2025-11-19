@@ -45,7 +45,7 @@ class RAGService:
         fetch_k: int = 10,
         filter_types: List[str] = None,
         str_results: bool = False,
-    ):
+    ) -> List[str]:
         """
         Retrieve relevant documents.
 

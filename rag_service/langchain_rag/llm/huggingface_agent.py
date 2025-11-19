@@ -21,11 +21,7 @@ from .base_agent import BaseAgent
 class HuggingFaceAgent(BaseAgent):
     """HuggingFace-based LLM agent using text generation models"""
 
-    def __init__(
-        self,
-        config: Any,
-        device: str = None
-    ):
+    def __init__(self, config: Any, device: str = None):
         """
         Initialize HuggingFace agent
 
@@ -45,25 +41,25 @@ class HuggingFaceAgent(BaseAgent):
             raise ValueError("config is required")
 
         # Get temperature from config
-        if hasattr(config, 'llm_temperature'):
+        if hasattr(config, "llm_temperature"):
             self.temperature = config.llm_temperature
         else:
             self.temperature = 0.7  # Default fallback
 
         # Get max_tokens from config
-        if hasattr(config, 'llm_max_tokens'):
+        if hasattr(config, "llm_max_tokens"):
             self.max_tokens = config.llm_max_tokens
         else:
             self.max_tokens = 1024  # Default fallback
 
         # Auto-detect device
         if device is None:
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
 
         # Get text generation model from config or use default
         # For HuggingFace, we can use a text generation model like GPT-2, T5, etc.
-        if hasattr(config, 'openai_model'):
+        if hasattr(config, "openai_model"):
             # Use the same model name pattern if available
             self.text_generator_model = config.openai_model
         else:
@@ -79,10 +75,7 @@ class HuggingFaceAgent(BaseAgent):
         )
 
     def run_llm(
-        self,
-        prompt: str,
-        system_prompt: str,
-        max_tokens: int = 500
+        self, prompt: str, system_prompt: str, max_tokens: int = 500
     ) -> Dict[str, Any]:
         """
         Run LLM with given prompt and system prompt
@@ -102,8 +95,8 @@ class HuggingFaceAgent(BaseAgent):
                     self.text_generator = pipeline(
                         "text-generation",
                         model=self.text_generator_model,
-                        device=0 if self.device == 'cuda' else -1,
-                        return_full_text=False
+                        device=0 if self.device == "cuda" else -1,
+                        return_full_text=False,
                     )
                 except Exception as e:
                     self.logger.warning(f"Failed to initialize text generator: {e}")
@@ -120,10 +113,10 @@ class HuggingFaceAgent(BaseAgent):
                 num_return_sequences=1,
                 temperature=self.temperature,
                 do_sample=True,
-                truncation=True
+                truncation=True,
             )
 
-            result_text = result[0]['generated_text'].strip() if result else ""
+            result_text = result[0]["generated_text"].strip() if result else ""
 
             if not result_text:
                 self.logger.warning("Empty response from text generator")
@@ -131,8 +124,8 @@ class HuggingFaceAgent(BaseAgent):
 
             # Try to extract JSON from the response
             try:
-                start_index = result_text.find('{')
-                end_index = result_text.rfind('}') + 1
+                start_index = result_text.find("{")
+                end_index = result_text.rfind("}") + 1
                 if start_index >= 0 and end_index > start_index:
                     json_text = result_text[start_index:end_index]
                     result = json.loads(json_text)
@@ -150,4 +143,3 @@ class HuggingFaceAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Error in run_llm: {e}")
             return {}
-

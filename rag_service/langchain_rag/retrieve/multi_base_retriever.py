@@ -2,13 +2,14 @@
 Multi-base retriever that manages multiple base retrievers and combines results
 """
 
-from typing import List, Dict, Any, Optional
-from langchain_core.documents import Document
-import structlog
+from typing import Dict, List, Optional
 
-logger = structlog.get_logger(__name__)
+import structlog
+from langchain_core.documents import Document
 
 from .hybrid_retriever import LangChainHybridRetriever
+
+logger = structlog.get_logger(__name__)
 
 
 class MultiBaseRetriever:
@@ -30,14 +31,16 @@ class MultiBaseRetriever:
         """
         self.base_retrievers = base_retrievers
         self.logger = logger.bind(component="MultiBaseRetriever")
-        self.logger.info(f"Initialized with {len(base_retrievers)} base retrievers: {list(base_retrievers.keys())}")
+        self.logger.info(
+            f"Initialized with {len(base_retrievers)} base retrievers: {list(base_retrievers.keys())}"
+        )
 
     def retrieve(
         self,
         query: str,
         fetch_k: int = 10,
         filter_types: Optional[List[str]] = None,
-        **kwargs
+        **kwargs,
     ) -> List[Document]:
         """
         Retrieve documents from one or more base retrievers based on filter_types
@@ -55,20 +58,25 @@ class MultiBaseRetriever:
         # If no filter_types specified, use all base retrievers
         if not filter_types or len(filter_types) == 0:
             selected_types = list(self.base_retrievers.keys())
-            self.logger.debug(f"No filter_types specified, using all retrievers: {selected_types}")
+            self.logger.debug(
+                f"No filter_types specified, using all retrievers: {selected_types}"
+            )
         else:
             # Normalize filter types to lowercase
             filter_types_normalized = [ft.lower() for ft in filter_types]
             # Select only the base retrievers that match filter_types
             selected_types = [
-                ret_type for ret_type in self.base_retrievers.keys()
+                ret_type
+                for ret_type in self.base_retrievers.keys()
                 if ret_type.lower() in filter_types_normalized
             ]
 
             if not selected_types:
                 selected_types = list(self.base_retrievers.keys())
 
-            self.logger.debug(f"Selected base retrievers: {selected_types} for filter_types: {filter_types}")
+            self.logger.debug(
+                f"Selected base retrievers: {selected_types} for filter_types: {filter_types}"
+            )
 
         # Retrieve from selected base retrievers
         all_results = []
@@ -78,13 +86,17 @@ class MultiBaseRetriever:
                 # Retrieve from this base retriever
                 # Note: We don't pass filter_types to individual retrievers since
                 # each retriever is already filtered by type (mail retriever only has mail docs, etc.)
-                results = retriever.retrieve(query, fetch_k=fetch_k, filters=filter_types, **kwargs)
+                results = retriever.retrieve(
+                    query, fetch_k=fetch_k, filters=filter_types, **kwargs
+                )
                 self.logger.debug(
                     f"Retrieved {len(results)} documents from {retriever_type} retriever"
                 )
                 all_results.extend(results)
             except Exception as e:
-                self.logger.exception(f"Error retrieving from {retriever_type} retriever: {e}")
+                self.logger.exception(
+                    f"Error retrieving from {retriever_type} retriever: {e}"
+                )
                 continue
 
         # Combine and deduplicate results
@@ -97,9 +109,7 @@ class MultiBaseRetriever:
         return combined_results
 
     def _combine_and_deduplicate(
-        self,
-        documents: List[Document],
-        fetch_k: int
+        self, documents: List[Document], fetch_k: int
     ) -> List[Document]:
         """
         Combine results from multiple retrievers and deduplicate by document ID/URL
@@ -134,8 +144,7 @@ class MultiBaseRetriever:
         # Convert back to list and sort by final_score
         deduplicated = list(seen_docs.values())
         deduplicated.sort(
-            key=lambda x: x.metadata.get("final_score", 0.0),
-            reverse=True
+            key=lambda x: x.metadata.get("final_score", 0.0), reverse=True
         )
 
         # Return top fetch_k
@@ -203,4 +212,3 @@ class MultiBaseRetriever:
             retriever.delete_documents(document_ids)
         else:
             self.logger.warning(f"No retriever found for type: {retriever_type}")
-
