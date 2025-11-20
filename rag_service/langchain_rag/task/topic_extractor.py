@@ -243,7 +243,7 @@ class TopicExtractor:
         """
         if not self.llm_helper:
             # Fallback: use first document's subject
-            return "Unknown"
+            return []
 
         # Extract topics for top n clusters
         topics = []

@@ -49,30 +49,25 @@ def test_generate_weekly_community_summary(mock_generator_class):
 
 @pytest.mark.django_db
 @patch("rag_service.tasks.MailDataRetriever")
-@patch("rag_service.tasks.RAGService")
+@patch("rag_service.tasks.RAGService.get_pipeline")
 def test_sync_new_mails_to_vector_db_no_new_emails(
-    mock_rag_service, mock_retriever_class
+    mock_get_pipeline, mock_retriever_class
 ):
     """Test sync_new_mails_to_vector_db when there are no new emails."""
     # Mock the pipeline
     mock_pipeline = Mock()
-    mock_rag_service.get_pipeline.return_value = mock_pipeline
-
-    # Mock mail retriever for ChromaDB
-    mock_chromadb_retriever = Mock()
-    mock_chromadb_retriever.get_mails.return_value = []
+    mock_get_pipeline.return_value = mock_pipeline
 
     # Mock mail retriever for HyperKitty
     mock_hyperkitty_retriever = Mock()
     mock_hyperkitty_retriever.get_mails.return_value = []
+    mock_retriever_class.return_value = mock_hyperkitty_retriever
 
-    # Configure retriever class to return different instances
-    mock_retriever_class.side_effect = [
-        mock_chromadb_retriever,
-        mock_hyperkitty_retriever,
-    ]
-
-    result = sync_new_mails_to_vector_db()
+    # Mock _get_latest_email_date_from_chromadb
+    with patch(
+        "rag_service.tasks._get_latest_email_date_from_chromadb", return_value=None
+    ):
+        result = sync_new_mails_to_vector_db()
 
     assert result["status"] == "success"
     assert result["added_count"] == 0
@@ -81,9 +76,9 @@ def test_sync_new_mails_to_vector_db_no_new_emails(
 
 @pytest.mark.django_db
 @patch("rag_service.tasks.MailDataRetriever")
-@patch("rag_service.tasks.RAGService")
+@patch("rag_service.tasks.RAGService.get_pipeline")
 def test_sync_new_mails_to_vector_db_with_new_emails(
-    mock_rag_service, mock_retriever_class
+    mock_get_pipeline, mock_retriever_class
 ):
     """Test sync_new_mails_to_vector_db when there are new emails."""
     # Mock the pipeline
@@ -93,11 +88,7 @@ def test_sync_new_mails_to_vector_db_with_new_emails(
         "updated_count": 0,
         "failed_count": 0,
     }
-    mock_rag_service.get_pipeline.return_value = mock_pipeline
-
-    # Mock mail retriever for ChromaDB (to get latest date)
-    mock_chromadb_retriever = Mock()
-    mock_chromadb_retriever.get_mails.return_value = []
+    mock_get_pipeline.return_value = mock_pipeline
 
     # Mock mail retriever for HyperKitty (to get new emails)
     mock_hyperkitty_retriever = Mock()
@@ -128,12 +119,7 @@ def test_sync_new_mails_to_vector_db_with_new_emails(
         },
     ]
     mock_hyperkitty_retriever.get_mails.return_value = new_emails
-
-    # Configure retriever class to return different instances
-    mock_retriever_class.side_effect = [
-        mock_chromadb_retriever,
-        mock_hyperkitty_retriever,
-    ]
+    mock_retriever_class.return_value = mock_hyperkitty_retriever
 
     # Mock _get_latest_email_date_from_chromadb
     with patch(
@@ -154,7 +140,18 @@ def test_update_summary_data(mock_generate_summary):
     start_date = end_date - timedelta(days=7)
 
     mock_summary_data = {
-        "summary_by_topic": [],
+        "summary_by_topic": [
+            {
+                "subject": "Test Topic 1",
+                "assertions": [],
+                "chronological_summary": [],
+            },
+            {
+                "subject": "Test Topic 2",
+                "assertions": [],
+                "chronological_summary": [],
+            },
+        ],
         "overall_stats": {
             "topics_count": 2,
             "recent_emails": 20,
@@ -223,32 +220,27 @@ def test_generate_weekly_community_summary_network_error(mock_generator_class):
 
 @pytest.mark.django_db
 @patch("rag_service.tasks.MailDataRetriever")
-@patch("rag_service.tasks.RAGService")
+@patch("rag_service.tasks.RAGService.get_pipeline")
 def test_sync_new_mails_to_vector_db_hyperkitty_connection_error(
-    mock_rag_service, mock_retriever_class
+    mock_get_pipeline, mock_retriever_class
 ):
     """Test sync_new_mails_to_vector_db handles HyperKitty connection errors."""
     # Mock the pipeline
     mock_pipeline = Mock()
-    mock_rag_service.get_pipeline.return_value = mock_pipeline
-
-    # Mock mail retriever for ChromaDB
-    mock_chromadb_retriever = Mock()
-    mock_chromadb_retriever.get_mails.return_value = []
+    mock_get_pipeline.return_value = mock_pipeline
 
     # Mock mail retriever for HyperKitty - connection error
     mock_hyperkitty_retriever = Mock()
     mock_hyperkitty_retriever.get_mails.side_effect = ConnectionError(
         "Database connection failed"
     )
+    mock_retriever_class.return_value = mock_hyperkitty_retriever
 
-    # Configure retriever class to return different instances
-    mock_retriever_class.side_effect = [
-        mock_chromadb_retriever,
-        mock_hyperkitty_retriever,
-    ]
-
-    result = sync_new_mails_to_vector_db()
+    # Mock _get_latest_email_date_from_chromadb to avoid errors there
+    with patch(
+        "rag_service.tasks._get_latest_email_date_from_chromadb", return_value=None
+    ):
+        result = sync_new_mails_to_vector_db()
 
     assert result["status"] == "error"
     assert "error" in result
@@ -257,9 +249,9 @@ def test_sync_new_mails_to_vector_db_hyperkitty_connection_error(
 
 @pytest.mark.django_db
 @patch("rag_service.tasks.MailDataRetriever")
-@patch("rag_service.tasks.RAGService")
+@patch("rag_service.tasks.RAGService.get_pipeline")
 def test_sync_new_mails_to_vector_db_invalid_email_data(
-    mock_rag_service, mock_retriever_class
+    mock_get_pipeline, mock_retriever_class
 ):
     """Test sync_new_mails_to_vector_db handles invalid email data."""
     # Mock the pipeline
@@ -270,11 +262,7 @@ def test_sync_new_mails_to_vector_db_invalid_email_data(
         "failed_count": 1,
         "failed_messages": ["Invalid email format"],
     }
-    mock_rag_service.get_pipeline.return_value = mock_pipeline
-
-    # Mock mail retriever for ChromaDB
-    mock_chromadb_retriever = Mock()
-    mock_chromadb_retriever.get_mails.return_value = []
+    mock_get_pipeline.return_value = mock_pipeline
 
     # Mock mail retriever for HyperKitty - returns invalid data
     mock_hyperkitty_retriever = Mock()
@@ -286,12 +274,7 @@ def test_sync_new_mails_to_vector_db_invalid_email_data(
         }
     ]
     mock_hyperkitty_retriever.get_mails.return_value = invalid_emails
-
-    # Configure retriever class to return different instances
-    mock_retriever_class.side_effect = [
-        mock_chromadb_retriever,
-        mock_hyperkitty_retriever,
-    ]
+    mock_retriever_class.return_value = mock_hyperkitty_retriever
 
     # Mock _get_latest_email_date_from_chromadb
     with patch(
@@ -302,23 +285,21 @@ def test_sync_new_mails_to_vector_db_invalid_email_data(
     assert result["status"] == "success"
     assert result["added_count"] == 0
     assert result["failed_count"] == 1
+    # Verify add_mail_data was called
+    mock_pipeline.add_mail_data.assert_called_once()
 
 
 @pytest.mark.django_db
 @patch("rag_service.tasks.MailDataRetriever")
-@patch("rag_service.tasks.RAGService")
+@patch("rag_service.tasks.RAGService.get_pipeline")
 def test_sync_new_mails_to_vector_db_pipeline_error(
-    mock_rag_service, mock_retriever_class
+    mock_get_pipeline, mock_retriever_class
 ):
     """Test sync_new_mails_to_vector_db handles pipeline errors."""
     # Mock the pipeline - raises error
     mock_pipeline = Mock()
     mock_pipeline.add_mail_data.side_effect = RuntimeError("Pipeline error")
-    mock_rag_service.get_pipeline.return_value = mock_pipeline
-
-    # Mock mail retriever for ChromaDB
-    mock_chromadb_retriever = Mock()
-    mock_chromadb_retriever.get_mails.return_value = []
+    mock_get_pipeline.return_value = mock_pipeline
 
     # Mock mail retriever for HyperKitty
     mock_hyperkitty_retriever = Mock()
@@ -336,12 +317,7 @@ def test_sync_new_mails_to_vector_db_pipeline_error(
             "reply_to": "",
         }
     ]
-
-    # Configure retriever class to return different instances
-    mock_retriever_class.side_effect = [
-        mock_chromadb_retriever,
-        mock_hyperkitty_retriever,
-    ]
+    mock_retriever_class.return_value = mock_hyperkitty_retriever
 
     # Mock _get_latest_email_date_from_chromadb
     with patch(
@@ -352,25 +328,25 @@ def test_sync_new_mails_to_vector_db_pipeline_error(
     assert result["status"] == "error"
     assert "error" in result
     assert "Pipeline error" in result["error"]
+    # Verify add_mail_data was called and raised the error
+    mock_pipeline.add_mail_data.assert_called_once()
 
 
 @pytest.mark.django_db
 @patch("rag_service.tasks.MailDataRetriever")
-@patch("rag_service.tasks.RAGService")
+@patch("rag_service.tasks.RAGService.get_pipeline")
 def test_sync_new_mails_to_vector_db_chromadb_error(
-    mock_rag_service, mock_retriever_class
+    mock_get_pipeline, mock_retriever_class
 ):
     """Test sync_new_mails_to_vector_db handles ChromaDB errors."""
     # Mock the pipeline
     mock_pipeline = Mock()
-    mock_rag_service.get_pipeline.return_value = mock_pipeline
+    mock_get_pipeline.return_value = mock_pipeline
 
-    # Mock mail retriever for ChromaDB - raises error
-    mock_chromadb_retriever = Mock()
-    mock_chromadb_retriever.get_mails.side_effect = RuntimeError("ChromaDB error")
-
-    # Configure retriever class
-    mock_retriever_class.return_value = mock_chromadb_retriever
+    # Mock mail retriever for HyperKitty
+    mock_hyperkitty_retriever = Mock()
+    mock_hyperkitty_retriever.get_mails.return_value = []
+    mock_retriever_class.return_value = mock_hyperkitty_retriever
 
     # Mock _get_latest_email_date_from_chromadb to raise error
     with patch(

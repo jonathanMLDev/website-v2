@@ -14,52 +14,45 @@ def community_summary(db):
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)
 
-    summary_data = {
-        "summary_by_topic": [
-            {
-                "subject": "Test Topic: Boost Library Updates",
-                "assertions": [
-                    {
-                        "content": "needs for this library",
-                        "reference url": [
-                            "https://example.com/url1",
-                            "https://example.com/url2",
-                        ],
-                    },
-                    {
-                        "content": "relation with boost.asio",
-                        "reference url": ["https://example.com/url3"],
-                    },
-                ],
-                "chronological_summary": [
-                    {
-                        "Date": "2018-09-10",
-                        "summary": "importance of this library",
-                        "reference url": ["https://example.com/url4"],
-                    },
-                    {
-                        "Date": "2021-02-20",
-                        "summary": "advanced properties of this library",
-                        "reference url": ["https://example.com/url5"],
-                    },
-                ],
-            },
-        ],
-        "overall_stats": {
-            "topics_count": 1,
-            "recent_emails": 15,
-            "date_range": {
-                "start": start_date.isoformat(),
-                "end": end_date.isoformat(),
-            },
+    summary_by_topic = [
+        {
+            "subject": "Test Topic: Boost Library Updates",
+            "assertions": [
+                {
+                    "content": "needs for this library",
+                    "reference url": [
+                        "https://example.com/url1",
+                        "https://example.com/url2",
+                    ],
+                },
+                {
+                    "content": "relation with boost.asio",
+                    "reference url": ["https://example.com/url3"],
+                },
+            ],
+            "chronological_summary": [
+                {
+                    "Date": "2018-09-10",
+                    "summary": "importance of this library",
+                    "reference url": ["https://example.com/url4"],
+                },
+                {
+                    "Date": "2021-02-20",
+                    "summary": "advanced properties of this library",
+                    "reference url": ["https://example.com/url5"],
+                },
+            ],
         },
-        "ai_generated": True,
-    }
+    ]
+
+    summary_data = {"summary_by_topic": summary_by_topic}
+    original_summary_data = {"summary_by_topic": summary_by_topic}
 
     return baker.make(
         "rag_service.CommunitySummary",
         start_date=start_date,
         end_date=end_date,
+        original_summary_data=original_summary_data,
         summary_data=summary_data,
         topics_count=1,
         recent_emails_count=15,
@@ -73,23 +66,15 @@ def community_summary_needs_review(db):
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)
 
-    summary_data = {
-        "summary_by_topic": [],
-        "overall_stats": {
-            "topics_count": 0,
-            "recent_emails": 0,
-            "date_range": {
-                "start": start_date.isoformat(),
-                "end": end_date.isoformat(),
-            },
-        },
-        "ai_generated": True,
-    }
+    summary_by_topic = []
+    summary_data = {"summary_by_topic": summary_by_topic}
+    original_summary_data = {"summary_by_topic": summary_by_topic}
 
     return baker.make(
         "rag_service.CommunitySummary",
         start_date=start_date,
         end_date=end_date,
+        original_summary_data=original_summary_data,
         summary_data=summary_data,
         topics_count=0,
         recent_emails_count=0,
@@ -103,7 +88,7 @@ def library_summary(db, library, library_version):
     return baker.make(
         "rag_service.LibrarySummary",
         library=library,
-        version=library_version,
+        version=library_version.version,
         summary_text="This is a test library summary.",
         key_features=["Feature 1", "Feature 2"],
         use_cases=["Use case 1", "Use case 2"],

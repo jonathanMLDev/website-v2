@@ -67,6 +67,7 @@ def test_community_summary_view_uses_latest_reviewed(tp):
         "rag_service.CommunitySummary",
         start_date=start_date - timedelta(days=7),
         end_date=end_date - timedelta(days=7),
+        original_summary_data={"summary_by_topic": []},
         summary_data={"summary_by_topic": []},
         need_review=False,
     )
@@ -76,6 +77,7 @@ def test_community_summary_view_uses_latest_reviewed(tp):
         "rag_service.CommunitySummary",
         start_date=start_date,
         end_date=end_date,
+        original_summary_data={"summary_by_topic": []},
         summary_data={"summary_by_topic": []},
         need_review=False,
     )
@@ -93,22 +95,15 @@ def test_community_summary_view_date_parsing(tp):
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)
 
-    summary_data = {
-        "summary_by_topic": [],
-        "overall_stats": {
-            "topics_count": 0,
-            "recent_emails": 0,
-            "date_range": {
-                "start": start_date.isoformat(),
-                "end": end_date.isoformat(),
-            },
-        },
-    }
+    summary_by_topic = []
+    summary_data = {"summary_by_topic": summary_by_topic}
+    original_summary_data = {"summary_by_topic": summary_by_topic}
 
     baker.make(
         "rag_service.CommunitySummary",
         start_date=start_date,
         end_date=end_date,
+        original_summary_data=original_summary_data,
         summary_data=summary_data,
         need_review=False,
     )

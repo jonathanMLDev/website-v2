@@ -2,8 +2,7 @@
 Django views for RAG Service.
 """
 
-from ast import Dict
-from dateutil.parser import parse as parse_date
+from dateutil.parser import parse
 from django.views.generic import TemplateView
 
 from .models import CommunitySummary
@@ -47,12 +46,10 @@ class CommunitySummaryView(TemplateView):
         if summary:
             context["community_summary"] = summary
             raw_summary = summary.summary_data
-            if isinstance(raw_summary, Dict):
-                summary_by_topic = raw_summary
+            if isinstance(raw_summary, dict):
+                summary_by_topic = raw_summary.get("summary_by_topic", [])
             else:
-                summary_by_topic["summary_by_topic"] = raw_summary.get(
-                    "summary_by_topic", []
-                )
+                summary_by_topic = []
 
             # Collect all unique URLs and create reference number mapping
             all_urls = self._collect_all_urls(summary_by_topic)
@@ -69,9 +66,10 @@ class CommunitySummaryView(TemplateView):
             overall_stats = {
                 "recent_emails": summary.recent_emails_count,
                 "date_range": {
-                    "start": summary.start_date.isoformat(),
-                    "end": summary.end_date.isoformat(),
+                    "start": summary.start_date,
+                    "end": summary.end_date,
                 },
+                "topics_count": len(summary_by_topic),
             }
             context["overall_stats"] = overall_stats
             context["ai_model_info"] = summary.model_info or {}
@@ -272,13 +270,13 @@ class CommunitySummaryView(TemplateView):
 
             if date_range.get("start"):
                 try:
-                    date_range["start"] = parse_date(date_range["start"])
+                    date_range["start"] = parse(date_range["start"])
                 except (ValueError, TypeError):
                     pass
 
             if date_range.get("end"):
                 try:
-                    date_range["end"] = parse_date(date_range["end"])
+                    date_range["end"] = parse(date_range["end"])
                 except (ValueError, TypeError):
                     pass
 

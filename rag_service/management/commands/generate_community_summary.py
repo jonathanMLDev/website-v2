@@ -5,13 +5,14 @@ This command generates a weekly community summary and saves it to the database.
 
 Usage:
     python manage.py generate_community_summary
-    python manage.py generate_community_summary --deactivate-existing
+    python manage.py generate_community_summary --test
 """
 
+from copy import deepcopy
 from datetime import datetime, timedelta
 
-from django.core.management.base import BaseCommand, CommandError
 from dateutil.parser import parse
+from django.core.management.base import BaseCommand, CommandError
 
 from rag_service.models import CommunitySummary
 
@@ -47,17 +48,22 @@ class Command(BaseCommand):
 
                 summary_data = generate_weekly_community_summary()
 
-            if not summary_data:
-                raise CommandError("Failed to generate summary data")
+            if not isinstance(summary_data, dict):
+                raise CommandError("Invalid summary data format (expected dict)")
 
-            # Check if summary generation failed
             if summary_data.get("error"):
                 raise CommandError(
                     f"Summary generation failed: {summary_data.get('error')}"
                 )
 
-            # Extract data for saving
+            summary_by_topic = summary_data.get("summary_by_topic", [])
+            if not isinstance(summary_by_topic, list):
+                raise CommandError("Summary data missing 'summary_by_topic' list")
+
             overall_stats = summary_data.get("overall_stats", {})
+            if not isinstance(overall_stats, dict):
+                raise CommandError("Summary data missing 'overall_stats'")
+
             date_range = overall_stats.get("date_range", {})
 
             # Parse date strings to datetime objects
@@ -80,15 +86,23 @@ class Command(BaseCommand):
             else:
                 end_date = datetime.now()
 
+            original_summary_data = {"summary_by_topic": deepcopy(summary_by_topic)}
+            published_summary_data = deepcopy(original_summary_data)
+            topics_count = len(summary_by_topic)
+            recent_emails = overall_stats.get("recent_emails", 0)
+            model_info = summary_data.get("ai_model_info", {})
+
             # Create new summary
             # For test summaries, set need_review=False so they display immediately
             need_review = not options.get("test", False)
             community_summary = CommunitySummary.objects.create(
                 start_date=start_date,
                 end_date=end_date,
-                summary_data=summary_data,
-                topics_count=overall_stats.get("topics_count", 0),
-                recent_emails_count=overall_stats.get("recent_emails", 0),
+                original_summary_data=original_summary_data,
+                summary_data=published_summary_data,
+                topics_count=topics_count,
+                recent_emails_count=recent_emails,
+                model_info=model_info,
                 need_review=need_review,
             )
 
@@ -111,98 +125,105 @@ class Command(BaseCommand):
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
 
+        summary_by_topic = [
+            {
+                "subject": "Test Topic: Boost Library Updates",
+                "assertions": [
+                    {
+                        "content": "needs for this library",
+                        "reference url": [
+                            "https://example.com/url1",
+                            "https://example.com/url2",
+                        ],
+                    },
+                    {
+                        "content": "relation with boost.asio",
+                        "reference url": [
+                            "https://example.com/url3",
+                            "https://example.com/url4",
+                        ],
+                    },
+                    {
+                        "content": "Pros and cons of this library",
+                        "reference url": [
+                            "https://example.com/url5",
+                            "https://example.com/url6",
+                        ],
+                    },
+                ],
+                "chronological_summary": [
+                    {
+                        "Date": "2018-09-10",
+                        "summary": "importance of this library",
+                        "reference url": [
+                            "https://example.com/url7",
+                            "https://example.com/url8",
+                        ],
+                    },
+                    {
+                        "Date": "2021-02-20",
+                        "summary": "advanced properties of this library",
+                        "reference url": [
+                            "https://example.com/url9",
+                            "https://example.com/url10",
+                        ],
+                    },
+                ],
+            },
+            {
+                "subject": "Test Topic: Community Discussions",
+                "assertions": [
+                    {
+                        "content": "needs for this Community",
+                        "reference url": [
+                            "https://example.com/url11",
+                            "https://example.com/url12",
+                        ],
+                    },
+                    {
+                        "content": "Pros and cons of this Community",
+                        "reference url": [
+                            "https://example.com/url13",
+                            "https://example.com/url14",
+                        ],
+                    },
+                ],
+                "chronological_summary": [
+                    {
+                        "Date": "2018-09-10",
+                        "summary": "Should update community page",
+                        "reference url": [
+                            "https://example.com/url15",
+                            "https://example.com/url16",
+                        ],
+                    },
+                    {
+                        "Date": "2021-02-20",
+                        "summary": "advanced properties of community page",
+                        "reference url": [
+                            "https://example.com/url17",
+                            "https://example.com/url18",
+                        ],
+                    },
+                ],
+            },
+        ]
+
         return {
-            "summary_by_topic": [
-                {
-                    "subject": "Test Topic: Boost Library Updates",
-                    "assertions": [
-                        {
-                            "content": "needs for this library",
-                            "reference url": [
-                                "https://example.com/url1",
-                                "https://example.com/url2",
-                            ],
-                        },
-                        {
-                            "content": "relation with boost.asio",
-                            "reference url": [
-                                "https://example.com/url3",
-                                "https://example.com/url4",
-                            ],
-                        },
-                        {
-                            "content": "Pros and cons of this library",
-                            "reference url": [
-                                "https://example.com/url5",
-                                "https://example.com/url6",
-                            ],
-                        },
-                    ],
-                    "chronological_summary": [
-                        {
-                            "Date": "2018-09-10",
-                            "summary": "importance of this library",
-                            "reference url": [
-                                "https://example.com/url7",
-                                "https://example.com/url8",
-                            ],
-                        },
-                        {
-                            "Date": "2021-02-20",
-                            "summary": "advanced properties of this library",
-                            "reference url": [
-                                "https://example.com/url9",
-                                "https://example.com/url10",
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "subject": "Test Topic: Community Discussions",
-                    "assertions": [
-                        {
-                            "content": "needs for this Community",
-                            "reference url": [
-                                "https://example.com/url11",
-                                "https://example.com/url12",
-                            ],
-                        },
-                        {
-                            "content": "Pros and cons of this Community",
-                            "reference url": [
-                                "https://example.com/url13",
-                                "https://example.com/url14",
-                            ],
-                        },
-                    ],
-                    "chronological_summary": [
-                        {
-                            "Date": "2018-09-10",
-                            "summary": "Should update community page",
-                            "reference url": [
-                                "https://example.com/url15",
-                                "https://example.com/url16",
-                            ],
-                        },
-                        {
-                            "Date": "2021-02-20",
-                            "summary": "advanced properties of community page",
-                            "reference url": [
-                                "https://example.com/url17",
-                                "https://example.com/url18",
-                            ],
-                        },
-                    ],
-                },
-            ],
+            "summary_by_topic": summary_by_topic,
             "overall_stats": {
-                "topics_count": 2,
+                "topics_count": len(summary_by_topic),
                 "recent_emails": 15,
                 "date_range": {
-                    "start": start_date.isoformat(),
-                    "end": end_date.isoformat(),
+                    "start": start_date,
+                    "end": end_date,
                 },
             },
+            "ai_model_info": {
+                "model_type": "test-type",
+                "model_name": "test-model",
+                "temperature": 0.2,
+            },
             "ai_generated": True,
-            "warning": "This is a test summary for development purposes.",
+            "message": "This is a test summary for development purposes.",
         }

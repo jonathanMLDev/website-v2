@@ -234,20 +234,18 @@ class LLMHelper:
 
     def _process_summarize_chronologically(
         self, documents: List[Document], topic: str
-    ) -> str:
+    ) -> Dict:
         """Process chronological topic summarization"""
         try:
             prompt, system_prompt = self.prompt_producer.produce_prompt(
                 "summarize_topic_chronologically", documents, topic
             )
             raw_result = self.agent.run_llm(prompt, system_prompt, max_tokens=800)
-            result = self._postprocess_summarize_topic_chronologically(
-                raw_result, topic
-            )
+            result = self._postprocess_summarize_topic_chronologically(raw_result)
             return result
         except Exception as e:
             self.logger.error(f"Error summarizing topic chronologically: {e}")
-            return f"Topic: {topic} - {len(documents)} relevant discussions found."
+            return []
 
     def _process_total_summarize(self, documents: List[Document]) -> Dict[str, Any]:
         """Process total summarization"""
@@ -260,7 +258,7 @@ class LLMHelper:
             return result
         except Exception as e:
             self.logger.error(f"Error in total summarization: {e}")
-            return {"subject": "Error extracting subject", "topics": []}
+            return None
 
     # Postprocessing methods
     def _postprocess_classify(self, raw_result: Dict[str, Any]) -> List[str]:
@@ -508,12 +506,10 @@ class LLMHelper:
         return topics[:10] if topics else []
 
     def _postprocess_summarize_topic_chronologically(
-        self, raw_result: Dict[str, Any], topic: str
-    ) -> str:
+        self, raw_result: Dict[str, Any]
+    ) -> List:
         """Postprocess chronological summarization result"""
-        summary = raw_result.get(
-            "chronological_summary", f"Topic: {topic} - relevant discussions found."
-        )
+        summary = raw_result.get("chronological_summary", [])
         return summary
 
     def _postprocess_total_summarize(
@@ -521,6 +517,12 @@ class LLMHelper:
     ) -> Dict[str, Any]:
         """Postprocess total summarization result"""
         if not raw_result:
-            return {"subject": "No subject extracted", "assertions": []}
+            return None
+        if "subject" not in raw_result:
+            return None
+        if raw_result["subject"] is None:
+            return None
+        if raw_result["subject"] == "":
+            return None
 
         return raw_result

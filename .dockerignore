@@ -149,3 +149,9 @@ static_deploy
 Makefile
 README.md
 venv/
+
+# RAG Service - ChromaDB database (mounted as volume, not needed in image)
+**/chroma_db/
+*.sqlite3
+*.sqlite3-journal
+*.pkl

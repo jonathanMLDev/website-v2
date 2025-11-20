@@ -28,8 +28,7 @@ logger = structlog.get_logger(__name__)
 @shared_task
 def generate_weekly_community_summary():
     """Generate weekly community summary."""
-    # start_date = datetime.now() - timedelta(days = 7)
-    start_date = datetime(2025, 9, 20, 0, 0, 0)  # for test
+    start_date = datetime.now() - timedelta(days=54)
     generator = WeeklyCommunitySummaryGenerator(
         source="chromadb",
         limit=200,
@@ -219,8 +218,29 @@ def update_summary_data():
 
     try:
         summary_data = generate_weekly_community_summary()
-        summary_by_topic = {}
-        summary_by_topic["summary_by_topic"] = summary_data.get("summary_by_topic", [])
+
+        if not isinstance(summary_data, dict):
+            logger.error(
+                "Invalid summary data type received", data_type=type(summary_data)
+            )
+            return {
+                "status": "error",
+                "error": "Invalid summary data format",
+            }
+
+        if (
+            "summary_by_topic" not in summary_data
+            or "overall_stats" not in summary_data
+        ):
+            logger.error("Summary data missing required fields", data=summary_data)
+            return {
+                "status": "error",
+                "error": "Summary data missing required fields",
+            }
+
+        summary_by_topic = {
+            "summary_by_topic": summary_data.get("summary_by_topic", []),
+        }
         topic_count = len(summary_by_topic["summary_by_topic"])
         overall_stats = summary_data.get("overall_stats", {})
         date_range = overall_stats.get("date_range", {})
@@ -250,7 +270,6 @@ def update_summary_data():
             summary_id=community_summary.id,
             topics_count=community_summary.topics_count,
             recent_emails_count=community_summary.recent_emails_count,
-            need_review=community_summary.need_review,
         )
 
         logger.info("Summary data update complete")

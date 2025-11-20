@@ -45,17 +45,21 @@ class TestRAGPipelineBasic:
         assert pipeline.data_processor is not None
         assert "mail" in pipeline.base_retrievers
 
-    @patch("rag_service.langchain_rag.rag_pipeline.LangChainRAGPipeline")
+    @patch("rag_service.services.LangChainRAGPipeline")
     def test_rag_service_singleton(self, mock_pipeline_class):
         """Test that RAGService maintains singleton pattern."""
         RAGService.reset_pipeline()
 
-        mock_pipeline = Mock()
-        mock_pipeline_class.return_value = mock_pipeline
+        mock_pipeline_first = Mock()
+        mock_pipeline_second = Mock()
+        mock_pipeline_class.side_effect = [
+            mock_pipeline_first,
+            mock_pipeline_second,
+        ]
 
         # First call should create pipeline
         pipeline1 = RAGService.get_pipeline()
-        assert pipeline1 == mock_pipeline
+        assert pipeline1 == mock_pipeline_first
 
         # Second call should return same instance
         pipeline2 = RAGService.get_pipeline()
@@ -65,6 +69,7 @@ class TestRAGPipelineBasic:
         # Reset and verify new instance
         RAGService.reset_pipeline()
         pipeline3 = RAGService.get_pipeline()
+        assert pipeline3 == mock_pipeline_second
         assert pipeline3 != pipeline1
         assert mock_pipeline_class.call_count == 2
 

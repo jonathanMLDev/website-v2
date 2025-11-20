@@ -463,8 +463,19 @@ class LangChainRAGPipeline:
                     continue
 
                 # Process new mail
-                if self._process_new_mail(mail_json, mail_retriever):
+                if not mail_retriever:
+                    # Missing retriever should be treated as a failure
+                    if message_id:
+                        failed_messages.append(message_id)
+                    self.logger.warning(
+                        f"Mail retriever not available, marking message {message_id} as failed"
+                    )
+                elif self._process_new_mail(mail_json, mail_retriever):
                     added_count += 1
+                else:
+                    # _process_new_mail returned False (retriever unavailable)
+                    if message_id:
+                        failed_messages.append(message_id)
             except (
                 Exception
             ) as e:  # pragma: no cover - continue processing remaining mails

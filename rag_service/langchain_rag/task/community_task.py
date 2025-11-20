@@ -118,6 +118,9 @@ class WeeklyCommunitySummaryGenerator:
     def _process_topic(self, topic: Any, end_date: datetime) -> None:
         """Process a single topic and generate its chronological summary."""
         topic_str = topic if isinstance(topic, str) else topic.get("subject", "")
+        if topic_str is None:
+            return
+
         self.logger.info(f"Processing topic: {topic_str}")
 
         relevant_emails = self.mail_retriever.retrieve_relevant_emails(
@@ -133,8 +136,12 @@ class WeeklyCommunitySummaryGenerator:
         topic_summary = self.topic_extractor.llm_helper.process_pipeline(
             "chronological_summary", relevant_emails, topic_str
         )
-        if isinstance(topic, dict):
+        if isinstance(topic_summary, list):
             topic["chronological_summary"] = topic_summary
+        elif isinstance(topic_summary, Dict):
+            topic["chronological_summary"] = topic_summary.values()
+        else:
+            topic["chronological_summary"] = []
 
     def _build_result(
         self,
@@ -163,6 +170,7 @@ class WeeklyCommunitySummaryGenerator:
                 },
             },
             "ai_model_info": self._get_ai_model_info(),
+            "message": "This summary is AI-generated from recent mailing list discussions",
         }
 
     def generate(self) -> Dict[str, Any]:
@@ -190,14 +198,14 @@ class WeeklyCommunitySummaryGenerator:
             email_count = len(
                 recent_emails.get("documents", recent_emails.get("ids", []))
             )
-            if not topics:
+            if len(topics) == 0:
                 return self._build_empty_result(
                     date_start, date_end, "No topics extracted", email_count
                 )
 
             # 3. Retrieve all mails related to each topic and generate chronological summary
             for topic in topics:
-                self._process_topic(topic, date_start - timedelta(days=-1))
+                self._process_topic(topic, date_start + timedelta(days=-1))
 
             # 4. Build final result
             result = self._build_result(topics, recent_emails, date_start, date_end)
@@ -207,10 +215,10 @@ class WeeklyCommunitySummaryGenerator:
         except Exception as e:
             self.logger.exception(f"Error generating weekly community summary: {e}")
             return {
-                "summary_by_topic": {},
+                "summary_by_topic": [],
                 "overall_stats": {},
-                "error": str(e),
-                "message": "Summary generation failed",
+                "ai_model_info": self._get_ai_model_info(),
+                "message": f"Summary generation failed{e}",
             }
 
     def _build_empty_result(
@@ -229,7 +237,7 @@ class WeeklyCommunitySummaryGenerator:
             end_str = str(date_end)
 
         return {
-            "summary_by_topic": {},
+            "summary_by_topic": [],
             "overall_stats": {
                 "recent_emails": recent_emails_count,
                 "date_range": {
@@ -237,6 +245,7 @@ class WeeklyCommunitySummaryGenerator:
                     "end": end_str,
                 },
             },
+            "ai_model_info": self._get_ai_model_info(),
             "message": message,
         }
 

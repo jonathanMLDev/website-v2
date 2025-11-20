@@ -26,6 +26,7 @@ def test_community_summary_defaults():
     summary = CommunitySummary.objects.create(
         start_date=start_date,
         end_date=end_date,
+        original_summary_data={},
         summary_data={},
     )
 
@@ -33,6 +34,7 @@ def test_community_summary_defaults():
     assert summary.topics_count == 0
     assert summary.recent_emails_count == 0
     assert summary.generated_at is not None
+    assert summary.original_summary_data == {}
 
 
 @pytest.mark.django_db
@@ -45,6 +47,7 @@ def test_community_summary_ordering():
         "rag_service.CommunitySummary",
         start_date=start_date,
         end_date=end_date,
+        original_summary_data={},
         summary_data={},
     )
 
@@ -57,6 +60,7 @@ def test_community_summary_ordering():
         "rag_service.CommunitySummary",
         start_date=start_date,
         end_date=end_date,
+        original_summary_data={},
         summary_data={},
     )
 
@@ -80,7 +84,7 @@ def test_library_summary_unique_together(db, library, library_version):
     baker.make(
         "rag_service.LibrarySummary",
         library=library,
-        version=library_version,
+        version=library_version.version,
         summary_text="First summary",
     )
 
@@ -89,7 +93,7 @@ def test_library_summary_unique_together(db, library, library_version):
         baker.make(
             "rag_service.LibrarySummary",
             library=library,
-            version=library_version,
+            version=library_version.version,
             summary_text="Second summary",
         )
 
@@ -99,7 +103,7 @@ def test_library_summary_defaults(db, library, library_version):
     """Test LibrarySummary default values."""
     summary = LibrarySummary.objects.create(
         library=library,
-        version=library_version,
+        version=library_version.version,
         summary_text="Test summary",
     )
 
