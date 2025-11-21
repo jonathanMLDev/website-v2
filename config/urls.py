@@ -66,6 +66,7 @@ from news.views import (
     VideoCreateView,
     VideoListView,
 )
+from rag_service import views as rag_service_views
 from users.views import (
     CurrentUserAPIView,
     CurrentUserProfileView,
@@ -195,7 +196,7 @@ urlpatterns = (
         # temp page for community until mailman is done.
         path(
             "community/",
-            TemplateView.as_view(template_name="community.html"),
+            rag_service_views.CommunitySummaryView.as_view(),
             name="community",
         ),
         # Boost community calendar
