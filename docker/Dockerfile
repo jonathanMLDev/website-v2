@@ -4,7 +4,26 @@ FROM python:3.13-slim AS builder-py
 
 ARG LOCAL_DEVELOPMENT
 
-RUN apt update && apt install -y build-essential gcc python-dev-is-python3 libpq-dev postgresql-client ruby ruby-dev && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt install -y \
+    build-essential \
+    gcc \
+    python-dev-is-python3 \
+    libpq-dev \
+    postgresql-client \
+    ruby \
+    ruby-dev \
+    libffi-dev \
+    libssl-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install ruby's asciidoctor.
 RUN gem install asciidoctor
@@ -22,13 +41,17 @@ COPY ./requirements-dev.txt ./code/requirements-dev.txt
 RUN uv venv venv
 
 # Activate the virtualenv and install the requirements.
+# Increase timeout for large packages (torch, playwright, CUDA dependencies)
+# Install in two passes: first without playwright, then playwright separately with retry
 RUN --mount=type=cache,target=/root/.cache \
     . /venv/bin/activate && \
-    uv pip install -r /code/requirements.txt
+    UV_HTTP_TIMEOUT=600 uv pip install -r /code/requirements.txt || \
+    (echo "First attempt failed, retrying with increased timeout..." && \
+    UV_HTTP_TIMEOUT=900 uv pip install -r /code/requirements.txt)
 
 RUN --mount=type=cache,target=/root/.cache if [ "${LOCAL_DEVELOPMENT}" = "true" ]; then \
-      . /venv/bin/activate && \
-      uv pip install -r /code/requirements-dev.txt; \
+    . /venv/bin/activate && \
+    uv pip install -r /code/requirements-dev.txt; \
     fi
 
 

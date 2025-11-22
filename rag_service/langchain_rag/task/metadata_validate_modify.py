@@ -8,6 +8,7 @@ Updates existing emails in ChromaDB with new metadata fields:
 
 Uses parent email context for better accuracy.
 """
+
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -62,7 +63,7 @@ class MetadataValidateModify:
         self.dry_run = dry_run
         self.source_data_path = source_data_path
         # Which properties to update (defaults to all supported)
-        default_props = ['libraries', 'categories', 'sentiment', 'parent']
+        default_props = ["libraries", "categories", "sentiment", "parent"]
         # default_props = ['sentiment']
 
         props = update_properties or default_props
@@ -77,20 +78,21 @@ class MetadataValidateModify:
         # Initialize LLM helper (for categories and sentiment)
         # Use OpenAI by default, can be configured via config
         from config.rag_config import DEFAULT_CONFIG
+
         llm_backend = "openai"
         self.llm_helper = LLMHelper(config=DEFAULT_CONFIG, backend=llm_backend)
         self.logger.info(f"LLM helper initialized with backend: {llm_backend}")
 
         # Statistics
         self.stats = {
-            'total_emails': 0,
-            'already_complete': 0,
-            'updated': 0,
-            'errors': 0,
-            'parent_context_used': 0
+            "total_emails": 0,
+            "already_complete": 0,
+            "updated": 0,
+            "errors": 0,
+            "parent_context_used": 0,
         }
         for prop in self.update_properties:
-            self.stats[f'missing_{prop}'] = 0
+            self.stats[f"missing_{prop}"] = 0
 
         # Cache for source emails (by URL)
         self.source_by_url: Dict[str, Document] = {}
@@ -107,17 +109,20 @@ class MetadataValidateModify:
             Dict mapping message_id (when available) to email data
         """
         from config.rag_config import DEFAULT_CONFIG
+
         processor = BoostDataProcessor(config=DEFAULT_CONFIG)
         emails_docs = processor.load_emails()
         count_loaded = 0
         for doc in emails_docs:
             md = doc.metadata or {}
-            url = md.get('url')
+            url = md.get("url")
             if url:
                 self.source_by_url[url] = doc
 
             count_loaded += 1
-        self.logger.info(f"Loaded {count_loaded} emails from BoostDataProcessor.load_emails()")
+        self.logger.info(
+            f"Loaded {count_loaded} emails from BoostDataProcessor.load_emails()"
+        )
         # Return a message_id map for compatibility with existing callers
         return self.source_by_url
 
@@ -133,7 +138,7 @@ class MetadataValidateModify:
         pipeline = LangChainRAGPipeline()
 
         # Get ChromaDB collection
-        mail_retriever = pipeline.base_retrievers['mail']
+        mail_retriever = pipeline.base_retrievers["mail"]
         self.collection = mail_retriever.vector_store._collection
         coll_name = self.collection.name
         self.logger.info(f"Connected to ChromaDB collection: {coll_name}")
@@ -144,16 +149,16 @@ class MetadataValidateModify:
                 where={"type": "mail"}  # Only get mail documents
             )
 
-            count = len(all_docs['ids'])
+            count = len(all_docs["ids"])
 
             for i in range(count):
                 doc = Document(
-                    id=all_docs['ids'][i],
-                    page_content=all_docs['documents'][i],
-                    metadata=all_docs['metadatas'][i]
+                    id=all_docs["ids"][i],
+                    page_content=all_docs["documents"][i],
+                    metadata=all_docs["metadatas"][i],
                 )
                 self.docs_to_modify.append(doc)
-                self.updated_metadata[doc.metadata['url']] = doc.metadata
+                self.updated_metadata[doc.metadata["url"]] = doc.metadata
             self.logger.info(f"Retrieved {count} email documents from ChromaDB")
             return self.docs_to_modify
         except Exception as e:
@@ -214,8 +219,8 @@ class MetadataValidateModify:
         """
         Modify libraries
         """
-        current_url = metadata['url']
-        subject = metadata['subject']
+        current_url = metadata["url"]
+        subject = metadata["subject"]
         content = subject + "\n" + self.source_by_url[current_url].page_content
         result = self.llm_helper.process_pipeline("extract_libraries", content)
         # process_pipeline returns a list (one result per document)
@@ -226,28 +231,26 @@ class MetadataValidateModify:
         """
         Modify categories
         """
-        current_url = metadata['url']
-        subject = metadata['subject']
+        current_url = metadata["url"]
+        subject = metadata["subject"]
         content = subject + " " + self.source_by_url[current_url].page_content
         result = self.llm_helper.process_pipeline("classify", content)
         # process_pipeline returns a list (one result per document)
-        return result[0] if result and len(result) > 0 else ['Discussion']
+        return result[0] if result and len(result) > 0 else ["Discussion"]
 
     def get_new_sentiment(self, metadata: Dict) -> str:
         """
         Modify sentiment
         """
-        current_url = metadata['url']
-        subject = metadata['subject']
+        current_url = metadata["url"]
+        subject = metadata["subject"]
         content = subject + " " + self.source_by_url[current_url].page_content
         result = self.llm_helper.process_pipeline("sentiment", content)
         # process_pipeline returns a list (one result per document)
         return result[0] if result and len(result) > 0 else "Neutral"
 
     def process_email(
-        self,
-        metadata: Dict,
-        missing_fields: List[str]
+        self, metadata: Dict, missing_fields: List[str]
     ) -> Optional[Dict]:
         """
         Process single email: check completeness and update if needed
@@ -260,7 +263,7 @@ class MetadataValidateModify:
         """
         try:
             new_metadata = metadata.copy()
-            date_timestamp = self.modify_date(metadata['date'])
+            date_timestamp = self.modify_date(metadata["date"])
 
             # Update basic fields
             self._update_basic_fields(
@@ -274,13 +277,13 @@ class MetadataValidateModify:
             # Extract LLM-based fields
             self._extract_llm_fields(new_metadata, metadata, missing_fields)
 
-            self.stats['updated'] += 1
+            self.stats["updated"] += 1
             return new_metadata
 
         except Exception as e:
-            url = metadata.get('url', 'unknown')
+            url = metadata.get("url", "unknown")
             self.logger.error(f"Failed to process email {url}: {e}")
-            self.stats['errors'] += 1
+            self.stats["errors"] += 1
             return None
 
     def _update_basic_fields(
@@ -288,17 +291,17 @@ class MetadataValidateModify:
         new_metadata: Dict,
         metadata: Dict,
         missing_fields: List[str],
-        date_timestamp: int
+        date_timestamp: int,
     ):
         """Update basic metadata fields (date, parent)"""
         if "date" in missing_fields:
-            new_metadata['date'] = date_timestamp
+            new_metadata["date"] = date_timestamp
 
         if "parent" in missing_fields:
-            current_url = metadata['url']
+            current_url = metadata["url"]
             parent_doc = self.source_by_url[current_url]
-            parent_url = parent_doc.metadata['parent']
-            new_metadata['parent'] = parent_url if parent_url else ""
+            parent_url = parent_doc.metadata["parent"]
+            new_metadata["parent"] = parent_url if parent_url else ""
 
     def _handle_old_email(self, new_metadata: Dict, missing_fields: List[str]) -> Dict:
         """Handle old emails by setting empty values for missing fields"""
@@ -311,25 +314,22 @@ class MetadataValidateModify:
         self, new_metadata: Dict, metadata: Dict, missing_fields: List[str]
     ):
         """Extract LLM-based fields (libraries, categories, sentiment)"""
-        if 'libraries' in missing_fields:
+        if "libraries" in missing_fields:
             libraries = self.get_new_libraries(metadata)
             if libraries:
-                new_metadata['libraries'] = ",".join(libraries)
+                new_metadata["libraries"] = ",".join(libraries)
 
-        if 'categories' in missing_fields:
+        if "categories" in missing_fields:
             categories = self.get_new_categories(metadata)
             if categories:
-                new_metadata['categories'] = ",".join(categories)
+                new_metadata["categories"] = ",".join(categories)
 
-        if 'sentiment' in missing_fields:
+        if "sentiment" in missing_fields:
             sentiment = self.get_new_sentiment(metadata)
             if sentiment:
-                new_metadata['sentiment'] = sentiment
+                new_metadata["sentiment"] = sentiment
 
-    def apply_updates_to_chromadb(
-        self,
-        updates: List[Dict]
-    ):
+    def apply_updates_to_chromadb(self, updates: List[Dict]):
         """
         Apply metadata updates to ChromaDB in batches
 
@@ -346,34 +346,30 @@ class MetadataValidateModify:
             for i, update in enumerate(updates[:5]):
                 self.logger.info(f"Sample {i+1}: {update['id']}")
                 self.logger.info(f"  Libraries: {update['metadata'].get('libraries')}")
-                self.logger.info(f"  Categories: {update['metadata'].get('categories')}")
+                self.logger.info(
+                    f"  Categories: {update['metadata'].get('categories')}"
+                )
                 self.logger.info(f"  Sentiment: {update['metadata'].get('sentiment')}")
             return
 
         if len(updates) == 1:
             update = updates[0]
-            self.collection.update(
-                ids=[update['id']],
-                metadatas=[update['metadata']]
-            )
+            self.collection.update(ids=[update["id"]], metadatas=[update["metadata"]])
             return
         self.logger.info(f"Applying {len(updates)} updates to ChromaDB...")
         # Update in batches
         batch_size = 100
         for i in tqdm(range(0, len(updates), batch_size), desc="Updating ChromaDB"):
-            batch = updates[i:i+batch_size]
+            batch = updates[i : i + batch_size]
 
-            ids = [item['id'] for item in batch]
-            metadatas = [item['metadata'] for item in batch]
+            ids = [item["id"] for item in batch]
+            metadatas = [item["metadata"] for item in batch]
 
             try:
-                self.collection.update(
-                    ids=ids,
-                    metadatas=metadatas
-                )
+                self.collection.update(ids=ids, metadatas=metadatas)
             except Exception as e:
                 self.logger.error(f"Failed to update batch {i//batch_size + 1}: {e}")
-                self.stats['errors'] += len(batch)
+                self.stats["errors"] += len(batch)
 
         self.logger.info("Updates applied successfully")
 
@@ -392,48 +388,49 @@ class MetadataValidateModify:
         for doc in tqdm(self.docs_to_modify, desc="Analyzing emails"):
             doc_id = doc.id
             metadata = doc.metadata
-            current_url = metadata['url']
-            self.stats['total_emails'] += 1
+            current_url = metadata["url"]
+            self.stats["total_emails"] += 1
 
             # Check if metadata is complete
             is_complete = False
             missing_fields = self.update_properties
             try:
                 if self.empty_update:
-                    is_complete, missing_fields = (
-                        self.check_metadata_completeness(metadata)
+                    is_complete, missing_fields = self.check_metadata_completeness(
+                        metadata
                     )
 
                 if is_complete:
-                    self.stats['already_complete'] += 1
+                    self.stats["already_complete"] += 1
                     continue
 
                 if current_url in updated_urls:
-                    updates.append({'id': doc_id, 'metadata': self.updated_metadata[current_url]})
-                    self.stats['updated'] += 1
+                    updates.append(
+                        {"id": doc_id, "metadata": self.updated_metadata[current_url]}
+                    )
+                    self.stats["updated"] += 1
                     # Update statistics
                     for prop in missing_fields:
-                        self.stats[f'missing_{prop}'] += 1
+                        self.stats[f"missing_{prop}"] += 1
 
                     continue
 
                 self.updated_metadata[current_url] = self.process_email(
-                    metadata=metadata,
-                    missing_fields=missing_fields
+                    metadata=metadata, missing_fields=missing_fields
                 )
 
                 if self.updated_metadata[current_url]:
                     updated_urls.append(current_url)
                     update = {
-                        'id': doc_id,
-                        'metadata': self.updated_metadata[current_url]
+                        "id": doc_id,
+                        "metadata": self.updated_metadata[current_url],
                     }
-                    if update['metadata'] != metadata:
+                    if update["metadata"] != metadata:
                         updates.append(update)
                         # self.apply_updates_to_chromadb([update])
             except Exception as e:
                 self.logger.error(f"Failed to process email {metadata.get('url')}: {e}")
-                self.stats['errors'] += 1
+                self.stats["errors"] += 1
                 return None
 
         return updates
@@ -448,7 +445,7 @@ class MetadataValidateModify:
                 return metadata[key]
         except KeyError:
             pass
-        p_url = metadata['parent']
+        p_url = metadata["parent"]
         if p_url:
             return self.find_in_thread(p_url, key)
         return None
@@ -459,7 +456,7 @@ class MetadataValidateModify:
         """
         repaired_updates = []
         for update in updates:
-            metadata = update['metadata']
+            metadata = update["metadata"]
             is_repaired = False
             for key in self.update_properties:
                 if key not in metadata:
@@ -468,11 +465,10 @@ class MetadataValidateModify:
                     metadata[key] = None
 
                 if metadata[key] is None:
-                    parent_url = metadata['parent']
+                    parent_url = metadata["parent"]
                     if parent_url:
                         parent_value = self.find_in_thread(
-                            parent_url=parent_url,
-                            key=key
+                            parent_url=parent_url, key=key
                         )
                         if parent_value:
                             metadata[key] = parent_value
@@ -522,18 +518,24 @@ class MetadataValidateModify:
         self.logger.info("STATISTICS")
         self.logger.info("=" * 80)
         self.logger.info(f"Total emails processed:      {self.stats['total_emails']}")
-        self.logger.info(f"Already complete:            {self.stats['already_complete']}")
+        self.logger.info(
+            f"Already complete:            {self.stats['already_complete']}"
+        )
         for prop in self.update_properties:
-            self.logger.info(f"Missing {prop}:              {self.stats[f'missing_{prop}']}")
+            self.logger.info(
+                f"Missing {prop}:              {self.stats[f'missing_{prop}']}"
+            )
         self.logger.info(f"Successfully updated:        {self.stats['updated']}")
-        self.logger.info(f"Parent context used:         {self.stats['parent_context_used']}")
+        self.logger.info(
+            f"Parent context used:         {self.stats['parent_context_used']}"
+        )
         self.logger.info(f"Errors:                      {self.stats['errors']}")
         self.logger.info("=" * 80)
 
         # Calculate completion rate
-        if self.stats['total_emails'] > 0:
-            numerator = self.stats['already_complete'] + self.stats['updated']
-            denominator = self.stats['total_emails']
+        if self.stats["total_emails"] > 0:
+            numerator = self.stats["already_complete"] + self.stats["updated"]
+            denominator = self.stats["total_emails"]
             completion_rate = numerator / denominator * 100
             msg = f"Metadata completion rate:    {completion_rate:.1f}%"
             self.logger.info(msg)
@@ -547,35 +549,26 @@ def main():
         description="Validate and modify email metadata in ChromaDB"
     )
     parser.add_argument(
-        '--config',
+        "--config", type=str, default=None, help="Path to RAG config file"
+    )
+    parser.add_argument(
+        "--source-data",
         type=str,
         default=None,
-        help="Path to RAG config file"
+        help="Path to source email data JSON file",
     )
     parser.add_argument(
-        '--source-data',
+        "--dry-run", action="store_true", help="Perform dry run (no actual updates)"
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    parser.add_argument(
+        "--properties",
         type=str,
-        default=None,
-        help="Path to source email data JSON file"
-    )
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help="Perform dry run (no actual updates)"
-    )
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        help="Enable verbose logging"
-    )
-    parser.add_argument(
-        '--properties',
-        type=str,
-        default='date',
+        default="date",
         help=(
             "Comma-separated list of properties to update "
             "(libraries,categories,sentiment)"
-        )
+        ),
     )
 
     args = parser.parse_args()
@@ -589,18 +582,16 @@ def main():
             "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
             "<level>{message}</level>"
         )
-        logger.add(
-            sys.stderr,
-            format=log_format,
-            level="DEBUG"
-        )
+        logger.add(sys.stderr, format=log_format, level="DEBUG")
 
     # Run validator/modifier
     validator = MetadataValidateModify(
         config_path=args.config,
         source_data_path=args.source_data,
         dry_run=args.dry_run,
-        update_properties=[p.strip().lower() for p in args.properties.split(',') if p.strip()]
+        update_properties=[
+            p.strip().lower() for p in args.properties.split(",") if p.strip()
+        ],
     )
 
     validator.run()
